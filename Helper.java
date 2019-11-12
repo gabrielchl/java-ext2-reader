@@ -15,42 +15,24 @@ public class Helper {
      * @param   bytes   Bytes to be dumped
      */
     public void dumpHexBytes(byte[] bytes) {
-        int print_col_count = 0;
-        int print_row_count = 0;
-        int blank_bytes_count = 16 - bytes.length % 16;
-        if (blank_bytes_count == 16) blank_bytes_count = 0;
+        int blank_bytes_count = (bytes.length % 16 == 0) ? 0 : 16 - bytes.length % 16;
         String row_output = "";
         String row_in_string = "";
-        for (byte b : bytes) {
-            row_output += Integer.toHexString(b) + " ";
-            row_in_string += (char)b;
-            print_col_count += 1;
-            if (print_col_count % 8 == 0) {
-                row_output += "| ";
-                if (print_col_count % 16 != 0)
-                    row_in_string += " | ";
+        for (int i = 0; i < bytes.length + blank_bytes_count; i++) {
+            if (i < bytes.length) {
+                row_output += Integer.toHexString(bytes[i]) + " ";
+                row_in_string += (char)bytes[i];
+            } else {
+                row_output += "\u001b[38;5;245m" + "XX " + "\u001b[0m";
+                row_in_string += "\u001b[38;5;245m" + "." + "\u001b[0m";
             }
-            if (print_col_count % 16 == 0) {
-                row_output += row_in_string;
-                System.out.println(row_output);
+            if ((i + 1) % 8 == 0) row_output += "| ";
+            if ((i + 1) % 8 == 0 && (i + 1) % 16 != 0) row_in_string += " | ";
+            if ((i + 1) % 16 == 0) {
+                System.out.println(row_output + row_in_string);
                 row_output = "";
                 row_in_string = "";
-                print_col_count = 0;
             }
         }
-        for (int i = 0; i < blank_bytes_count; i++) {
-            print_col_count++;
-            row_output += "\u001b[38;5;245m" + "XX " + "\u001b[0m";
-            row_in_string += "\u001b[38;5;245m" + "." + "\u001b[0m";
-            if (print_col_count % 8 == 0) {
-                row_output += "| ";
-                if (print_col_count % 16 != 0)
-                    row_in_string += " | ";
-            }
-        }
-        row_output += row_in_string;
-        print_row_count += 1;
-        if (blank_bytes_count > 0)
-            System.out.println(row_output);
     }
 }
