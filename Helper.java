@@ -18,6 +18,7 @@ public class Helper {
         int print_col_count = 0;
         int print_row_count = 0;
         int blank_bytes_count = 16 - bytes.length % 16;
+        if (blank_bytes_count == 16) blank_bytes_count = 0;
         String row_output = "";
         String row_in_string = "";
         for (byte b : bytes) {
@@ -39,20 +40,17 @@ public class Helper {
         }
         for (int i = 0; i < blank_bytes_count; i++) {
             print_col_count++;
-            row_output += "XX ";
+            row_output += "\u001b[38;5;245m" + "XX " + "\u001b[0m";
+            row_in_string += "\u001b[38;5;245m" + "." + "\u001b[0m";
             if (print_col_count % 8 == 0) {
                 row_output += "| ";
+                if (print_col_count % 16 != 0)
+                    row_in_string += " | ";
             }
         }
         row_output += row_in_string;
         print_row_count += 1;
-        for (int i = 0; i < blank_bytes_count; i++) {
-            print_col_count++;
-            row_output += ".";
-            if ((print_col_count - blank_bytes_count) == 8) {
-                row_output += " | ";
-            }
-        }
-        System.out.println(row_output);
+        if (blank_bytes_count > 0)
+            System.out.println(row_output);
     }
 }
