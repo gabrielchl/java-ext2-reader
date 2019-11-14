@@ -1,7 +1,13 @@
 import java.io.*;
 import java.nio.*;
+import java.util.*;
 
 public class Ext2Reader {
+    public static final String BOLD = "\u001b[1m";
+    public static final String GREY_COL = "\u001b[38;5;245m";
+    public static final String BLUE_COL = "\u001b[38;5;39m";
+    public static final String RESET_COL = "\u001b[0m";
+
     public static void main(String[] args) {
         //Volume vol = new Volume('./ext2fs');
         Helper helper = new Helper();
@@ -32,5 +38,28 @@ public class Ext2Reader {
         }**/
 
         Volume vol = new Volume("./ext2fs");
+
+        Scanner scanner = new Scanner(System.in);
+        while (true) {
+            System.out.print(BOLD + BLUE_COL + "/ $ " + RESET_COL);
+            String command = scanner.nextLine();
+            switch (command) {
+                case "help":
+                case "h":
+                    System.out.println("help");
+                    System.out.println("h       print this help text");
+                    System.out.println("df      print volume details");
+                    break;
+                case "df":
+                    vol.print_vol_details();
+                    break;
+                case "exit":
+                    System.out.println("Good bye! :)");
+                    System.exit(0);
+                    break;
+                default:
+                    break;
+            }
+        }
     }
 }

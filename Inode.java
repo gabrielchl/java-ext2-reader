@@ -32,6 +32,7 @@ import java.util.*;
 **/
 public class Inode {
     private Volume vol;
+    private String filename;
     private int offset;
 
     private short file_mode;
@@ -43,7 +44,7 @@ public class Inode {
     private Date deleted;
     private short owner_group;
     private short num_hard_links;
-    private int[] data_blocks = new int[12];
+    private DataBlock[] data_blocks = new DataBlock[12];
     private Inode ip;
     private Inode dip;
     private Inode tip;
@@ -62,10 +63,18 @@ public class Inode {
         deleted = new Date(vol.bb.getInt(offset + 20));
         owner_group = vol.bb.getShort(offset + 24);
         num_hard_links = vol.bb.getShort(offset + 26);
-        // TODO data blocks
-        ip = (vol.bb.getInt(offset + 88) == 0) ? null : new Inode(vol, vol.bb.getInt(2056) + (vol.bb.getInt(offset + 88) - 1) * 128); // TODO 1024 dynamic
-        dip = (vol.bb.getInt(offset + 92) == 0) ? null : new Inode(vol, vol.bb.getInt(2056) + (vol.bb.getInt(offset + 92) - 1) * 128); // TODO 1024 dynamic
-        tip = (vol.bb.getInt(offset + 96) == 0) ? null : new Inode(vol, vol.bb.getInt(2056) + (vol.bb.getInt(offset + 96) - 1) * 128); // TODO 1024 dynamic
+
+        for (int i = 0; i < 12; i++) {
+            if (vol.bb.getInt(offset + 40 + i * 4) == 0) {
+                data_blocks[i] = null;
+            } else {
+                data_blocks[i] = new DataBlock(vol, this, vol.bb.getInt(offset + 40 + i * 4) * 1024);
+            }
+        }
+
+        //ip = (vol.bb.getInt(offset + 88) == 0) ? null : new Inode(vol, vol.bb.getInt(2056) + (vol.bb.getInt(offset + 88) - 1) * 128); // TODO 1024 dynamic
+        //dip = (vol.bb.getInt(offset + 92) == 0) ? null : new Inode(vol, vol.bb.getInt(2056) + (vol.bb.getInt(offset + 92) - 1) * 128); // TODO 1024 dynamic
+        //tip = (vol.bb.getInt(offset + 96) == 0) ? null : new Inode(vol, vol.bb.getInt(2056) + (vol.bb.getInt(offset + 96) - 1) * 128); // TODO 1024 dynamic
 
         System.out.println("Last access: " + new Date(vol.bb.getInt(offset + 8)));
         System.out.println("Created: " + new Date(vol.bb.getInt(offset + 12)));

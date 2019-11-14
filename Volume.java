@@ -3,6 +3,9 @@ import java.nio.*;
 import java.util.*;
 
 public class Volume {
+    private String vol_filename;
+    private Inode[] inodes;
+
     private int num_blocks;
     private int num_inodes;
     private int blocks_per_gp;
@@ -15,6 +18,7 @@ public class Volume {
      * @param   filename    Filename of the "volume file"
      */
     public Volume(String filename) {
+        vol_filename = filename;
         try {
             RandomAccessFile vol_file = new RandomAccessFile("ext2fs", "r");
             int length = (int)vol_file.length();
@@ -22,10 +26,10 @@ public class Volume {
             vol_file.readFully(bytes);
             bb = ByteBuffer.wrap(bytes);
 
-            byte[] test = new byte[86256];
+            /**byte[] test = new byte[307204];
             Helper helper = new Helper();
             bb.get(test);
-            helper.dumpHexBytes(test);
+            helper.dumpHexBytes(test);**/
 
             bb.order(ByteOrder.LITTLE_ENDIAN);
 
@@ -58,7 +62,8 @@ public class Volume {
 
             System.out.println("-----------------Inode 2----------------");
 
-            Inode i2 = new Inode(this, 1024 * bb.getInt(2056) + 128);
+            inodes = new Inode[num_inodes];
+            inodes[1] = new Inode(this, 1024 * bb.getInt(2056) + 128); // inode 2
 
             System.out.println("------------Inode 2 > Block 0-----------");
 
@@ -74,5 +79,23 @@ public class Volume {
         } catch (Exception e) {
             e.printStackTrace();
         }
+    }
+
+    public void print_vol_details() {
+        System.out.println("Filesystem: " + vol_filename);
+        System.out.println("1K-blocks:  " + num_blocks);
+        System.out.println("Used:       "); // TODO
+        System.out.println("Use %:      "); // TODO;
+    }
+
+    public Inode get_inode(int id) {
+        System.out.println(id);
+        if (inodes[id - 1] == null) {
+            System.out.println("created");
+            inodes[id - 1] = new Inode(this, 1024 * bb.getInt(2056) + 128 * (id - 1));
+        } else {
+            System.out.println("existing");
+        }
+        return inodes[id - 1];
     }
 }
