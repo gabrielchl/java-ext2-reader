@@ -76,13 +76,25 @@ public class Inode {
         //dip = (vol.bb.getInt(offset + 92) == 0) ? null : new Inode(vol, vol.bb.getInt(2056) + (vol.bb.getInt(offset + 92) - 1) * 128); // TODO 1024 dynamic
         //tip = (vol.bb.getInt(offset + 96) == 0) ? null : new Inode(vol, vol.bb.getInt(2056) + (vol.bb.getInt(offset + 96) - 1) * 128); // TODO 1024 dynamic
 
-        System.out.println("Last access: " + new Date(vol.bb.getInt(offset + 8)));
-        System.out.println("Created: " + new Date(vol.bb.getInt(offset + 12)));
-        System.out.println("Last modified: " + new Date(vol.bb.getInt(offset + 16)));
+        System.out.println("File mode:              " + file_perm_string(file_mode));
+        System.out.println("Last access:            " + new Date(vol.bb.getInt(offset + 8)));
+        System.out.println("Created:                " + new Date(vol.bb.getInt(offset + 12)));
+        System.out.println("Last modified:          " + new Date(vol.bb.getInt(offset + 16)));
         System.out.println("Direct block pointer 0: " + vol.bb.getInt(offset + 40));
         System.out.println("Direct block pointer 1: " + vol.bb.getInt(offset + 44));
         System.out.println("Direct block pointer 2: " + vol.bb.getInt(offset + 48));
-        System.out.println("File size1: " + vol.bb.getInt(offset + 4));
-        System.out.println("File size2: " + vol.bb.getInt(offset + 108));
+        System.out.println("File size1:             " + vol.bb.getInt(offset + 4));
+        System.out.println("File size2:             " + vol.bb.getInt(offset + 108));
+    }
+
+    public String file_perm_string(short file_mode) {
+        String file_perm_string = "";
+        int[] file_perms = {0x0100, 0x0080, 0x0040, 0x0020, 0x0010, 0x0008, 0x0004, 0x0002, 0x0001};
+        for (int i = 0; i < 3; i++) {
+            file_perm_string += ((file_mode & file_perms[i * 3]) == file_perms[i * 3]) ? 'r' : '-';
+            file_perm_string += ((file_mode & file_perms[i * 3 + 1]) == file_perms[i * 3 + 1]) ? 'w' : '-';
+            file_perm_string += ((file_mode & file_perms[i * 3 + 2]) == file_perms[i * 3 + 2]) ? 'x' : '-';
+        }
+        return file_perm_string;
     }
 }

@@ -2,7 +2,7 @@ import java.io.*;
 import java.nio.*;
 import java.util.*;
 
-public class Ext2Reader {
+public class Main {
     public static final String BOLD = "\u001b[1m";
     public static final String GREY_COL = "\u001b[38;5;245m";
     public static final String BLUE_COL = "\u001b[38;5;39m";

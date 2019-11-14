@@ -15,7 +15,7 @@ public class DirEntry {
     private char[] filename;
     public DirEntry(Volume vol, int offset) {
         //System.out.println(vol.bb.get(offset));
-        inode = vol.get_inode(vol.bb.get(offset));
+        //inode = vol.get_inode(vol.bb.get(offset));
         name_len = vol.bb.get(offset + 6);
         file_type = vol.bb.get(offset + 7);
         char[] filename = new char[vol.bb.get(offset + 6)];
