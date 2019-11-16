@@ -30,6 +30,7 @@ import java.util.*;
 | 124    | 4      | Reserved                                         |
 +--------+--------+--------------------------------------------------+
 **/
+/**
 public class Inode {
     private Volume vol;
     private String filename;
@@ -76,7 +77,7 @@ public class Inode {
         //dip = (vol.bb.getInt(offset + 92) == 0) ? null : new Inode(vol, vol.bb.getInt(2056) + (vol.bb.getInt(offset + 92) - 1) * 128); // TODO 1024 dynamic
         //tip = (vol.bb.getInt(offset + 96) == 0) ? null : new Inode(vol, vol.bb.getInt(2056) + (vol.bb.getInt(offset + 96) - 1) * 128); // TODO 1024 dynamic
 
-        System.out.println("File mode:              " + file_perm_string(file_mode));
+        System.out.println("File mode:              " + file_perm_string(file_mode);
         System.out.println("Last access:            " + new Date(vol.bb.getInt(offset + 8)));
         System.out.println("Created:                " + new Date(vol.bb.getInt(offset + 12)));
         System.out.println("Last modified:          " + new Date(vol.bb.getInt(offset + 16)));
@@ -89,6 +90,13 @@ public class Inode {
 
     public String file_perm_string(short file_mode) {
         String file_perm_string = "";
+        int[] file_types = {0xC000, 0xA000, 0x8000, 0x6000, 0x4000, 0x2000, 0x1000};
+        char[] file_type_symbols = {'s', 'l', '-', 'b', 'd', 'c', 'p'};
+        for (int i = 0; i < 7; i++) {
+            if ((file_mode & file_types[i]) == file_types[i]) {
+                file_perm_string += file_type_symbols[i];
+            }
+        }
         int[] file_perms = {0x0100, 0x0080, 0x0040, 0x0020, 0x0010, 0x0008, 0x0004, 0x0002, 0x0001};
         for (int i = 0; i < 3; i++) {
             file_perm_string += ((file_mode & file_perms[i * 3]) == file_perms[i * 3]) ? 'r' : '-';
@@ -98,3 +106,4 @@ public class Inode {
         return file_perm_string;
     }
 }
+**/
