@@ -1,5 +1,8 @@
 import java.util.*;
+import java.text.*;
+
 /**
+Inode contents
 +--------+--------+--------------------------------------------------+
 | Offset | Length | Description                                      |
 | 0      | 2      | File mode                                        |
@@ -29,66 +32,111 @@ import java.util.*;
 | 122    | 2      | Group ID of owner (upper 16 bits)                |
 | 124    | 4      | Reserved                                         |
 +--------+--------+--------------------------------------------------+
-**/
-/**
-public class Inode {
-    private Volume vol;
-    private String filename;
-    private int offset;
 
-    private short file_mode;
-    private short owner_user;
-    private int file_size_l; // TODO
-    private Date accessed;
-    private Date created;
-    private Date modified;
-    private Date deleted;
-    private short owner_group;
-    private short num_hard_links;
-    private DataBlock[] data_blocks = new DataBlock[12];
-    private Inode ip;
-    private Inode dip;
-    private Inode tip;
-    private int file_size_u; // TODO
+Directory entry Contents
++--------+--------+---------------------+
+| Offset | Length | Description         |
+| 0      | 4      | Inode               |
+| 4      | 2      | Length              |
+| 6      | 1      | Name length         |
+| 7      | 1      | File type indicator |
+| 8 + N  | N      | Name                |
++--------+--------+---------------------+
+**/
+public class Inode {
+    Volume vol;
+    int offset;
 
     public Inode(Volume vol, int offset) {
         this.vol = vol;
         this.offset = offset;
-
-        file_mode = vol.bb.getShort(offset);
-        owner_user = vol.bb.getShort(offset + 2);
-        file_size_l = vol.bb.getInt(offset + 4);
-        accessed = new Date(vol.bb.getInt(offset + 8));
-        created = new Date(vol.bb.getInt(offset + 12));
-        modified = new Date(vol.bb.getInt(offset + 16));
-        deleted = new Date(vol.bb.getInt(offset + 20));
-        owner_group = vol.bb.getShort(offset + 24);
-        num_hard_links = vol.bb.getShort(offset + 26);
-
-        for (int i = 0; i < 12; i++) {
-            if (vol.bb.getInt(offset + 40 + i * 4) == 0) {
-                data_blocks[i] = null;
-            } else {
-                data_blocks[i] = new DataBlock(vol, this, vol.bb.getInt(offset + 40 + i * 4) * 1024);
-            }
-        }
-
-        //ip = (vol.bb.getInt(offset + 88) == 0) ? null : new Inode(vol, vol.bb.getInt(2056) + (vol.bb.getInt(offset + 88) - 1) * 128); // TODO 1024 dynamic
-        //dip = (vol.bb.getInt(offset + 92) == 0) ? null : new Inode(vol, vol.bb.getInt(2056) + (vol.bb.getInt(offset + 92) - 1) * 128); // TODO 1024 dynamic
-        //tip = (vol.bb.getInt(offset + 96) == 0) ? null : new Inode(vol, vol.bb.getInt(2056) + (vol.bb.getInt(offset + 96) - 1) * 128); // TODO 1024 dynamic
-
-        System.out.println("File mode:              " + file_perm_string(file_mode);
-        System.out.println("Last access:            " + new Date(vol.bb.getInt(offset + 8)));
-        System.out.println("Created:                " + new Date(vol.bb.getInt(offset + 12)));
-        System.out.println("Last modified:          " + new Date(vol.bb.getInt(offset + 16)));
-        System.out.println("Direct block pointer 0: " + vol.bb.getInt(offset + 40));
-        System.out.println("Direct block pointer 1: " + vol.bb.getInt(offset + 44));
-        System.out.println("Direct block pointer 2: " + vol.bb.getInt(offset + 48));
-        System.out.println("File size1:             " + vol.bb.getInt(offset + 4));
-        System.out.println("File size2:             " + vol.bb.getInt(offset + 108));
     }
 
-    public String file_perm_string(short file_mode) {
+    public Inode lookup(String filename) { // void for now
+        int dir_entries_offset = vol.bb.getInt(offset + 40) * 1024;
+        int dir_entry_pointer = 0;
+        int dir_entry_len = 0;
+        do {
+            char[] current_filename = new char[vol.bb.get(dir_entries_offset + dir_entry_pointer + 6)];
+            for (int i = 0; i < current_filename.length; i++) {
+                current_filename[i] = (char)vol.bb.get(i + dir_entries_offset + dir_entry_pointer + 8);
+            }
+            if (filename.equals(new String(current_filename))) {
+                return vol.get_inode(vol.bb.getShort(dir_entries_offset + dir_entry_pointer));
+            }
+            dir_entry_len = vol.bb.getShort(dir_entries_offset + dir_entry_pointer + 4);
+            dir_entry_pointer += dir_entry_len;
+        } while (dir_entry_len != 0 && dir_entry_pointer < 1024);
+        return null;
+    }
+
+    public void list() {
+        int dir_entries_offset = vol.bb.getInt(offset + 40) * 1024; // first datablock
+        int dir_entry_pointer = 0;
+        int dir_entry_len = 0;
+        do {
+            short num_hard_links = vol.bb.getShort(offset + 26);
+            char[] current_filename = new char[vol.bb.get(dir_entries_offset + dir_entry_pointer + 6)];
+            for (int i = 0; i < current_filename.length; i++) {
+                current_filename[i] = (char)vol.bb.get(i + dir_entries_offset + dir_entry_pointer + 8);
+            }
+            System.out.print(new String(current_filename) + "  ");
+            dir_entry_len = vol.bb.getShort(dir_entries_offset + dir_entry_pointer + 4);
+            dir_entry_pointer += dir_entry_len;
+        } while (dir_entry_len != 0 && dir_entry_pointer < 1024);
+        System.out.print("\n");
+    }
+
+    public void list_long() {
+        int dir_entries_offset = vol.bb.getInt(offset + 40) * 1024; // first datablock
+        int dir_entry_pointer = 0;
+        int dir_entry_len = 0;
+        TablePrinter table = new TablePrinter();
+        do {
+            Inode current_inode = vol.get_inode(vol.bb.getInt(dir_entries_offset + dir_entry_pointer));
+            SimpleDateFormat format = new SimpleDateFormat("MMM d HH:mm");
+            char[] current_filename = new char[vol.bb.get(dir_entries_offset + dir_entry_pointer + 6)];
+            for (int i = 0; i < current_filename.length; i++) {
+                current_filename[i] = (char)vol.bb.get(i + dir_entries_offset + dir_entry_pointer + 8);
+            }
+            String[] row = {
+                current_inode.file_perm_string(),
+                Short.toString(current_inode.num_hard_links()),
+                Short.toString(current_inode.owner_user_id()),
+                Short.toString(current_inode.owner_group_id()),
+                "SIZE HERE",
+                format.format(current_inode.last_modified()),
+                filename_color() + new String(current_filename) + Main.RESET
+            };
+            table.add_row(row);
+            dir_entry_len = vol.bb.getShort(dir_entries_offset + dir_entry_pointer + 4);
+            dir_entry_pointer += dir_entry_len;
+        } while (dir_entry_len != 0 && dir_entry_pointer < 1024);
+        table.print_table();
+    }
+
+    public String filename_color() {
+        String color_string = new String();
+        if ((vol.bb.getShort(offset) & 0x4000) == 0x4000) {
+            color_string += Main.BOLD_FONT + Main.BLUE_COL;
+        }
+        return color_string;
+    }
+
+    public short owner_user_id() {
+        return vol.bb.getShort(offset + 2);
+    }
+
+    public short owner_group_id() {
+        return vol.bb.getShort(offset + 24);
+    }
+
+    public short num_hard_links() {
+        return vol.bb.getShort(offset + 26);
+    }
+
+    public String file_perm_string() {
+        short file_mode = vol.bb.getShort(offset);
         String file_perm_string = "";
         int[] file_types = {0xC000, 0xA000, 0x8000, 0x6000, 0x4000, 0x2000, 0x1000};
         char[] file_type_symbols = {'s', 'l', '-', 'b', 'd', 'c', 'p'};
@@ -105,5 +153,12 @@ public class Inode {
         }
         return file_perm_string;
     }
+
+    public Date last_modified() {
+        return new Date(vol.bb.getInt(offset + 16));
+    }
+
+    //public void stat() {
+
+    //}
 }
-**/
