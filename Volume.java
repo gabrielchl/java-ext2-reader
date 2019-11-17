@@ -40,14 +40,14 @@ public class Volume {
 
             //System.out.println("Magic Number: " + bb.getShort(1080));
             num_blocks = bb.getInt(1028);
-            System.out.println("# of blocks: " + num_blocks);
+            //System.out.println("# of blocks: " + num_blocks);
             num_inodes = bb.getInt(1024);
-            System.out.println("# of inodes: " + num_inodes);
+            //System.out.println("# of inodes: " + num_inodes);
             //System.out.println("Filesystem block size: " + bb.getInt(1048));
             blocks_per_gp = bb.getInt(1056);
-            System.out.println("# of blocks per group: " + blocks_per_gp);
+            //System.out.println("# of blocks per group: " + blocks_per_gp);
             inodes_per_gp = bb.getInt(1064);
-            System.out.println("# of inodes per group: " + inodes_per_gp);
+            //System.out.println("# of inodes per group: " + inodes_per_gp);
             inode_size = bb.getInt(1112);
             //System.out.println("Size of each inode: " + inode_size);
             char[] label = new char[16];
@@ -60,17 +60,18 @@ public class Volume {
 
             System.out.println("Block bitmap pointer: " + bb.getInt(2048));
             System.out.println("Inode bitmap pointer: " + bb.getInt(2052));
-            System.out.println("Inode table pointer: " + bb.getInt(2056));
+
             System.out.println("Free block count: " + bb.getShort(2060));
             System.out.println("Free inode count: " + bb.getShort(2062));
             System.out.println("Used directories count: " + bb.getShort(2064));**/
-System.out.println("Inode table pointer: " + bb.getInt(2056));
-            inode_table_pointer = bb.getInt(2056) * 1024;
+            //System.out.println("Inode table pointer: " + bb.getInt(2056));
+            inode_table_pointer = bb.getInt(2056) * 1024; // in bytes
 
             //System.out.println("-----------------Inode 2----------------");
 
             root_inode = new Inode(this, inode_table_pointer + 128); // inode 2
-            cwd = new File("", root_inode);
+            LinkedList<String> root_path = new LinkedList<String>(Arrays.asList(""));
+            cwd = new File(this, "", root_path, root_inode);
 
             /**System.out.println("------------Inode 2 > Block 0-----------");
 
@@ -124,7 +125,18 @@ System.out.println("Inode table pointer: " + bb.getInt(2056));
     public Boolean change_dir(String filename) {
         Inode lookup_result = cwd.get_inode().lookup(filename);
         if (lookup_result == null) return false;
-        cwd = new File(filename, lookup_result);
+        LinkedList<String> path = cwd.get_path();
+        switch (filename) {
+            case ".":
+                break;
+            case "..":
+                if (path.size() != 1) path.removeLast();
+                break;
+            default:
+                path.add(filename);
+                break;
+        }
+        cwd = new File(this, filename, path, lookup_result);
         return true;
     }
 }
