@@ -44,10 +44,12 @@ Directory entry Contents
 **/
 public class Inode {
     Volume vol;
+    int id;
     int offset;
 
-    public Inode(Volume vol, int offset) {
+    public Inode(Volume vol, int id, int offset) {
         this.vol = vol;
+        this.id = id;
         this.offset = offset;
     }
 
@@ -93,14 +95,26 @@ public class Inode {
         return vol.bb.getShort(offset + 26);
     }
 
+    public Boolean is_directory() {
+        if ((vol.bb.getShort(offset) & 0x4000) == 0x4000) {
+            return true;
+        }
+        return false;
+    }
+
+    public int file_size() { // lower only
+        return vol.bb.getInt(offset + 4);
+    }
+
     public int[] stat() {
         int[] stat = {
-            0,// inode num
+            id,// inode num
             new Integer(vol.bb.getShort(offset)), // file mode
             new Integer(vol.bb.getShort(offset + 26)), // num hard links
             new Integer(vol.bb.getShort(offset + 2)), // uid
             new Integer(vol.bb.getShort(offset + 24)), // gid
-            0,// size
+            vol.bb.getInt(offset + 4), // size (lower)
+            vol.bb.getInt(offset + 108), // size (upper)
             vol.bb.getInt(offset + 28), // num of 512 blocks allocated,
             vol.bb.getInt(offset + 8), // last access time
             vol.bb.getInt(offset + 12), // creation time

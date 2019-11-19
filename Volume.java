@@ -69,7 +69,7 @@ public class Volume {
 
             //System.out.println("-----------------Inode 2----------------");
 
-            root_inode = new Inode(this, inode_table_pointer + 128); // inode 2
+            root_inode = new Inode(this, 2, inode_table_pointer + 128); // inode 2
             LinkedList<String> root_path = new LinkedList<String>(Arrays.asList(""));
             cwd = new File(this, "", root_path, root_inode);
 
@@ -102,13 +102,13 @@ public class Volume {
         int inode_offset = 1024 + 1024 + 32 * block_group_num + 8; // boot block + super block + group descriptors + offset to inode table pointer
         inode_offset = bb.getInt(inode_offset) * 1024;
         if (inode_num < 13) {
-            return new Inode(this, inode_offset + 128 * (inode_num - 1));
+            return new Inode(this, id, inode_offset + 128 * (inode_num - 1));
         } else if (inode_num == 13) { // 13, 14, 15 is probably not right, not very clear about how indirect inode works currently
-            return new Inode(this, Volume.this.bb.getInt(inode_offset + 128 * 13) * 1024);
+            return new Inode(this, id, Volume.this.bb.getInt(inode_offset + 128 * 13) * 1024);
         } else if (inode_num == 14) {
-            return new Inode(this, Volume.this.bb.getInt(Volume.this.bb.getInt(inode_offset + 128 * 14) * 1024) * 1024);
+            return new Inode(this, id, Volume.this.bb.getInt(Volume.this.bb.getInt(inode_offset + 128 * 14) * 1024) * 1024);
         } else if (inode_num == 15) {
-            return new Inode(this, Volume.this.bb.getInt(Volume.this.bb.getInt(Volume.this.bb.getInt(inode_offset + 128 * 15) * 1024) * 1024) * 1024);
+            return new Inode(this, id, Volume.this.bb.getInt(Volume.this.bb.getInt(Volume.this.bb.getInt(inode_offset + 128 * 15) * 1024) * 1024) * 1024);
         }
         return null;
         //indirect inode # = 1024 / 4
@@ -122,9 +122,16 @@ public class Volume {
         return cwd;
     }
 
-    public Boolean change_dir(String filename) {
+    public void change_dir(String filename) {
         Inode lookup_result = cwd.get_inode().lookup(filename);
-        if (lookup_result == null) return false;
+        if (lookup_result == null) {
+            System.out.println("cd: " + filename + ": No such file or directory");
+            return;
+        }
+        if (!lookup_result.is_directory()) {
+            System.out.println("cd: " + filename + ": Not a directory");
+            return;
+        }
         LinkedList<String> path = cwd.get_path();
         switch (filename) {
             case ".":
@@ -137,6 +144,5 @@ public class Volume {
                 break;
         }
         cwd = new File(this, filename, path, lookup_result);
-        return true;
     }
 }

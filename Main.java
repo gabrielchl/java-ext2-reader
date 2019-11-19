@@ -6,6 +6,7 @@ import java.text.*;
 
 public class Main {
     public static final String BOLD_FONT = "\u001b[1m";
+    public static final String LIGHT_GREY_COL = "\u001b[38;5;248m";
     public static final String GREY_COL = "\u001b[38;5;245m";
     public static final String BLUE_COL = "\u001b[38;5;110m";
     public static final String RESET = "\u001b[0m";
@@ -82,8 +83,12 @@ public class Main {
                     break;
                 case "cd":
                     if (arguments.length >= 1) {
-                        Boolean cd_result = vol.change_dir(arguments[0]);
-                        if (cd_result == false) System.out.println("cd: " + arguments[0] + ": No such file or directory");
+                        vol.change_dir(arguments[0]);
+                    }
+                    break;
+                case "cat":
+                    if (arguments.length >= 1) {
+                        cat(command, arguments);
                     }
                     break;
                 case "quit":
@@ -110,7 +115,7 @@ public class Main {
                     Integer.toString(file_stat[3]), // uid
                     Integer.toString(file_stat[4]), // gid
                     Integer.toString(file_stat[5]), // size
-                    format_date(file_stat[7]), // last access time
+                    format_date(file_stat[7], "MMM d HH:mm"), // last access time
                     file.get_filename()
                 };
                 table.add_row(row);
@@ -131,30 +136,58 @@ public class Main {
             System.out.println("can't find file");
         } else {
             int[] stat = target_inode.stat();
-            System.out.println("File: " + target_filename);
-            System.out.println("Size: " + stat[5]);
-            System.out.println("Blocks: ");
-            System.out.println("IO Block: ");
-            System.out.println("<filetype>: ");
-            System.out.println("Device?: ");
-            System.out.println("Inode: ");
-            System.out.println("Links: " + stat[2]);
-            System.out.println("Access: ");
-            System.out.println("Uid: " + stat[3]);
-            System.out.println("Gid: " + stat[4]);
-            System.out.println("Access: " + format_date(stat[7])); // wrong format
-            System.out.println("Modify: " + format_date(stat[8]));
-            System.out.println("Change: " + format_date(stat[8])); // not sure what this exactly is
-            System.out.println("Birth: " + format_date(stat[9]));
+            System.out.println("  File: " + target_filename);
+            TablePrinter table_printer = new TablePrinter();
+            table_printer.add_row(new String[]{
+                "  Size: " + stat[5] + " ",
+                "Blocks: " + stat[7] + " ",
+                "IO Block: 1024 ",
+                file_type_string(stat[1])
+            });
+            table_printer.add_row(new String[]{
+                "Device: N/A ", // LIGHT_GREY_COL + "Device: N/A " + RESET (color not supported in table printer for now)
+                "Inode: " + stat[0] + " ",
+                "Links: " + stat[2],
+                ""
+            });
+            table_printer.print_table();
+            System.out.print("Access: (" + Integer.toOctalString(stat[1]).substring(1) + "/" + file_perm_string(stat[1]) + ")  ");
+            System.out.print("Uid: " + stat[3] + "  ");
+            System.out.print("Gid: " + stat[4] + "  ");
+            System.out.print("\n");
+            System.out.println("Access: " + format_date(stat[8], "YYYY-MM-dd HH:mm:ss.SSS Z")); // wrong format
+            System.out.println("Modify: " + format_date(stat[9], "YYYY-MM-dd HH:mm:ss.SSS Z"));
+            System.out.println("Change: " + format_date(stat[9], "YYYY-MM-dd HH:mm:ss.SSS Z")); // not sure what this exactly is
+            System.out.println(" Birth: " + format_date(stat[10], "YYYY-MM-dd HH:mm:ss.SSS Z"));
         }
     }
 
-    public String format_date(int date_time) {
-        SimpleDateFormat format = new SimpleDateFormat("MMM d HH:mm");
-        return format.format(date_time);
+    public String file_type_string(int file_mode) {
+        int[] file_types = {0xC000, 0xA000, 0x8000, 0x6000, 0x4000, 0x2000, 0x1000};
+        String[] file_type_names = {
+            "socket",
+            "symbolic link",
+            "regular file",
+            "block device",
+            "directory",
+            "character deice",
+            "FIFO"
+        };
+        for (int i = 0; i < 7; i++) {
+            if ((file_mode & file_types[i]) == file_types[i]) {
+                return file_type_names[i];
+            }
+        }
+        return "unknown file type";
+    }
+
+    public String format_date(int date_time, String format) {
+        SimpleDateFormat simple_date_format = new SimpleDateFormat(format);
+        return simple_date_format.format(date_time);
     }
 
     public String file_perm_string(int file_mode) {
+        file_mode = file_mode & 0xFFFF;
         String file_perm_string = "";
         int[] file_types = {0xC000, 0xA000, 0x8000, 0x6000, 0x4000, 0x2000, 0x1000};
         char[] file_type_symbols = {'s', 'l', '-', 'b', 'd', 'c', 'p'};
@@ -170,5 +203,30 @@ public class Main {
             file_perm_string += ((file_mode & file_perms[i * 3 + 2]) == file_perms[i * 3 + 2]) ? 'x' : '-';
         }
         return file_perm_string;
+    }
+
+    public void cat(String command, String[] arguments) {
+        String target_filename = arguments[0];
+        Inode target_inode = vol.get_cwd().get_inode().lookup(target_filename);
+        if (target_inode == null) {
+            System.out.println("cat: " + target_filename + ": No such file or directory");
+            return;
+        }
+        if (target_inode.is_directory()) {
+            System.out.println("cat: " + target_filename + ": Is a directory");
+            return;
+        }
+        char[] content = new char[target_inode.file_size()];
+        for (int i = 0; i < target_inode.file_size(); i++) {
+            content[i] = (char)vol.bb.get(target_inode.datablock_pointer() + i);
+        }
+        System.out.println(new String(content));
+
+        Helper h = new Helper();
+        byte[] bytes = new byte[target_inode.file_size()];
+        for (int i = 0; i < target_inode.file_size(); i++) {
+            bytes[i] = vol.bb.get(target_inode.datablock_pointer() + i);
+        }
+        h.dumpHexBytes(bytes);
     }
 }
