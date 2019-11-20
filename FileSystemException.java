@@ -132,8 +132,8 @@ public class FileSystemException extends Exception {
     };
     private int err_no;
 
-    public FileSystemException(int errno) {
-        super(Integer.toString(errno));
+    public FileSystemException(int err_no) {
+        super(Integer.toString(err_no));
         this.err_no = err_no;
     }
 
@@ -141,7 +141,7 @@ public class FileSystemException extends Exception {
         return err_no;
     }
 
-    public String err_msg() {
-        return err_msgs[err_no];
+    public void print_err_msg(String prefix) {
+        System.out.println(prefix + ": " + err_msgs[err_no - 1]);
     }
 }
