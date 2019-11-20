@@ -48,18 +48,4 @@ public class File {
         } while (dir_entry_len != 0 && dir_entry_pointer < 1024);
         return dir_files;
     }
-
-    public String[] stat() {
-        SimpleDateFormat format = new SimpleDateFormat("MMM d HH:mm");
-        String[] stat = {
-            inode.file_perm_string(),
-            Short.toString(inode.num_hard_links()),
-            Short.toString(inode.owner_user_id()),
-            Short.toString(inode.owner_group_id()),
-            "SIZE HERE",
-            format.format(inode.last_modified()),
-            filename
-        };
-        return stat;
-    }
 }
