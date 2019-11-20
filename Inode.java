@@ -1,5 +1,5 @@
 import java.util.*;
-
+import org.omg.CORBA.SystemException;
 /**
 Inode contents
 +--------+--------+--------------------------------------------------+
@@ -53,7 +53,7 @@ public class Inode {
         this.offset = offset;
     }
 
-    public Inode lookup(String filename) { // void for now
+    public Inode lookup(String filename) throws FileSystemException { // void for now
         int dir_entries_offset = vol.bb.getInt(offset + 40) * 1024;
         int dir_entry_pointer = 0;
         int dir_entry_len = 0;
@@ -68,7 +68,7 @@ public class Inode {
             dir_entry_len = vol.bb.getShort(dir_entries_offset + dir_entry_pointer + 4);
             dir_entry_pointer += dir_entry_len;
         } while (dir_entry_len != 0 && dir_entry_pointer < 1024);
-        return null;
+        throw new FileSystemException(2);
     }
 
     public int datablock_pointer() {

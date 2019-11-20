@@ -131,34 +131,40 @@ public class Main {
 
     public void stat(String command, String[] arguments) {
         String target_filename = arguments[0];
-        Inode target_inode = vol.get_cwd().get_inode().lookup(target_filename);
-        if (target_inode == null) {
-            System.out.println("can't find file");
-        } else {
-            int[] stat = target_inode.stat();
-            System.out.println("  File: " + target_filename);
-            TablePrinter table_printer = new TablePrinter();
-            table_printer.add_row(new String[]{
-                "  Size: " + stat[5] + " ",
-                "Blocks: " + stat[7] + " ",
-                "IO Block: 1024 ",
-                file_type_string(stat[1])
-            });
-            table_printer.add_row(new String[]{
-                "Device: N/A ", // LIGHT_GREY_COL + "Device: N/A " + RESET (color not supported in table printer for now)
-                "Inode: " + stat[0] + " ",
-                "Links: " + stat[2],
-                ""
-            });
-            table_printer.print_table();
-            System.out.print("Access: (" + Integer.toOctalString(stat[1]).substring(1) + "/" + file_perm_string(stat[1]) + ")  ");
-            System.out.print("Uid: " + stat[3] + "  ");
-            System.out.print("Gid: " + stat[4] + "  ");
-            System.out.print("\n");
-            System.out.println("Access: " + format_date(stat[8], "YYYY-MM-dd HH:mm:ss.SSS Z")); // wrong format
-            System.out.println("Modify: " + format_date(stat[9], "YYYY-MM-dd HH:mm:ss.SSS Z"));
-            System.out.println("Change: " + format_date(stat[9], "YYYY-MM-dd HH:mm:ss.SSS Z")); // not sure what this exactly is
-            System.out.println(" Birth: " + format_date(stat[10], "YYYY-MM-dd HH:mm:ss.SSS Z"));
+        try {
+            Inode target_inode = vol.get_cwd().get_inode().lookup(target_filename);
+            if (target_inode == null) {
+                System.out.println("can't find file");
+            } else {
+                int[] stat = target_inode.stat();
+                System.out.println("  File: " + target_filename);
+                TablePrinter table_printer = new TablePrinter();
+                table_printer.add_row(new String[]{
+                    "  Size: " + stat[5] + " ",
+                    "Blocks: " + stat[7] + " ",
+                    "IO Block: 1024 ",
+                    file_type_string(stat[1])
+                });
+                table_printer.add_row(new String[]{
+                    "Device: N/A ", // LIGHT_GREY_COL + "Device: N/A " + RESET (color not supported in table printer for now)
+                    "Inode: " + stat[0] + " ",
+                    "Links: " + stat[2],
+                    ""
+                });
+                table_printer.print_table();
+                System.out.print("Access: (" + Integer.toOctalString(stat[1]).substring(1) + "/" + file_perm_string(stat[1]) + ")  ");
+                System.out.print("Uid: " + stat[3] + "  ");
+                System.out.print("Gid: " + stat[4] + "  ");
+                System.out.print("\n");
+                System.out.println("Access: " + format_date(stat[8], "YYYY-MM-dd HH:mm:ss.SSS Z")); // wrong format
+                System.out.println("Modify: " + format_date(stat[9], "YYYY-MM-dd HH:mm:ss.SSS Z"));
+                System.out.println("Change: " + format_date(stat[9], "YYYY-MM-dd HH:mm:ss.SSS Z")); // not sure what this exactly is
+                System.out.println(" Birth: " + format_date(stat[10], "YYYY-MM-dd HH:mm:ss.SSS Z"));
+            }
+        } catch (FileSystemException e) {
+            if (e.err_no() == 2) {
+                System.out.println("stat: " + target_filename + ": " + e.err_msg());
+            }
         }
     }
 
@@ -207,26 +213,21 @@ public class Main {
 
     public void cat(String command, String[] arguments) {
         String target_filename = arguments[0];
-        Inode target_inode = vol.get_cwd().get_inode().lookup(target_filename);
-        if (target_inode == null) {
-            System.out.println("cat: " + target_filename + ": No such file or directory");
-            return;
+        try {
+            Inode target_inode = vol.get_cwd().get_inode().lookup(target_filename);
+            if (target_inode.is_directory()) {
+                System.out.println("cat: " + target_filename + ": Is a directory");
+                return;
+            }
+            char[] content = new char[target_inode.file_size()];
+            for (int i = 0; i < target_inode.file_size(); i++) {
+                content[i] = (char)vol.bb.get(target_inode.datablock_pointer() + i);
+            }
+            System.out.println(new String(content));
+        } catch (FileSystemException e) {
+            if (e.err_no() == 2) {
+                System.out.println("cat: " + target_filename + ": " + e.err_msg());
+            }
         }
-        if (target_inode.is_directory()) {
-            System.out.println("cat: " + target_filename + ": Is a directory");
-            return;
-        }
-        char[] content = new char[target_inode.file_size()];
-        for (int i = 0; i < target_inode.file_size(); i++) {
-            content[i] = (char)vol.bb.get(target_inode.datablock_pointer() + i);
-        }
-        System.out.println(new String(content));
-
-        Helper h = new Helper();
-        byte[] bytes = new byte[target_inode.file_size()];
-        for (int i = 0; i < target_inode.file_size(); i++) {
-            bytes[i] = vol.bb.get(target_inode.datablock_pointer() + i);
-        }
-        h.dumpHexBytes(bytes);
     }
 }
