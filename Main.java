@@ -51,6 +51,8 @@ public class Main {
         //vol.get_root_inode().lookup("deep").details();
 
         Scanner scanner = new Scanner(System.in);
+        byte[] test = new byte[1000];
+        vol.bb.get(test, 1024, 1000);
         while (true) {
             System.out.print(BOLD_FONT + BLUE_COL + vol.get_cwd().get_path_string() + " $ " + RESET);
             String[] input = scanner.nextLine().trim().split("[ ]+");

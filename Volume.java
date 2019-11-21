@@ -3,6 +3,7 @@ import java.nio.*;
 import java.util.*;
 import java.lang.ref.*;
 import java.text.*;
+import java.nio.channels.FileChannel;
 
 public class Volume {
     public static final int BLOCK_LEN = 1024;
@@ -17,7 +18,7 @@ public class Volume {
     private int blocks_per_gp;
     private int inodes_per_gp;
     private int inode_size;
-    public ByteBuffer bb;
+    public MappedByteBuffer bb;
 
     private int inode_table_pointer; // TODO temp till i get what a block group is
     /**
@@ -32,7 +33,7 @@ public class Volume {
             int length = (int)vol_file.length();
             byte[] bytes = new byte[length];
             vol_file.readFully(bytes);
-            bb = ByteBuffer.wrap(bytes);
+            bb = vol_file.getChannel().map(FileChannel.MapMode.READ_ONLY, 0, length);
 
             /**byte[] test = new byte[8390670];
             Helper helper = new Helper();
