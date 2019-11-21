@@ -1,5 +1,6 @@
 import java.util.*;
 import org.omg.CORBA.SystemException;
+import java.lang.Math;
 /**
 Inode contents
 +--------+--------+--------------------------------------------------+
@@ -103,15 +104,30 @@ public class Inode {
     }
 
     public int get_datablock_pt(int datablock_id) {
-        if (datablock_id < 12) {
-            return vol.bb.getInt(offset + 40 + datablock_id * 4) * 1024;
-        } else if (datablock_id < 268) { // 13, 14, 15 is probably not right, not very clear about how indirect inode works currently
-            return vol.bb.getInt(vol.bb.getInt(offset + 88) * 1024 + (datablock_id - 12) * 4) * 1024;
-        } else if (datablock_id < 65804) {
-            return vol.bb.getInt(vol.bb.getInt(vol.bb.getInt(offset + 92) * 1024 + (datablock_id - 268) / 256 * 4) * 1024 + (datablock_id - 268) * 4) * 1024;
-        } else if (datablock_id < 16843020) {
+        int dir_pt_max = 12;
+        int indir_pt_max = dir_pt_max + Volume.BLOCK_LEN / Volume.DATABLOCK_PT_LEN; // 268
+        int dbl_indir_pt_max = indir_pt_max + (int)Math.pow(Volume.BLOCK_LEN / Volume.DATABLOCK_PT_LEN, 2); // 65804
+        int trpl_indir_pt_max = dbl_indir_pt_max + (int)Math.pow(Volume.BLOCK_LEN / Volume.DATABLOCK_PT_LEN, 3); // 16843020
+        if (datablock_id < dir_pt_max) {
+            System.out.println(offset + " " + datablock_id);
+            System.out.println(offset + 40 + datablock_id * 4);
+            System.out.println(vol.bb.getInt(offset + 40));
+            System.out.println(vol.bb.getInt(offset + 40 + 4));
+            System.out.println(vol.bb.getInt(offset + 40 + 8));
+            System.out.println(vol.bb.getInt(offset + 40 + 12));
+            System.out.println(vol.bb.getInt(offset + 40 + 16));
+            System.out.println(vol.bb.getInt(offset + 40 + 20));
+            System.out.println(vol.bb.getInt(offset + 40 + 24));
+            System.out.println(vol.bb.getInt(offset + 40 + 28));
+            System.out.println(vol.bb.getInt(offset + 40 + 32));
+            System.out.println(vol.bb.getInt(offset + 40 + 36));
+            return vol.bb.getInt(offset + 40 + datablock_id * 4) * Volume.BLOCK_LEN;
+        } else if (datablock_id < indir_pt_max) { // 13, 14, 15 is probably not right, not very clear about how indirect inode works currently
+            return vol.bb.getInt(vol.bb.getInt(offset + 88) * Volume.BLOCK_LEN + (datablock_id - dir_pt_max) * 4) * Volume.BLOCK_LEN;
+        } else if (datablock_id < dbl_indir_pt_max) {
+            return vol.bb.getInt(vol.bb.getInt(vol.bb.getInt(offset + 92) * Volume.BLOCK_LEN + (datablock_id - indir_pt_max) / Volume.BLOCK_LEN / Volume.DATABLOCK_PT_LEN * 4) * Volume.BLOCK_LEN + (datablock_id - indir_pt_max) * 4) * Volume.BLOCK_LEN;
+        } else if (datablock_id < trpl_indir_pt_max) {
             return 0;
-            //return new Inode(vol, id, Volume.this.bb.getInt(Volume.this.bb.getInt(Volume.this.bb.getInt(inode_offset + 128 * 15) * 1024) * 1024) * 1024);
         }
         return 0;
     }
@@ -122,17 +138,17 @@ public class Inode {
 
     public int[] stat() {
         int[] stat = {
-            id,// inode num
-            new Integer(vol.bb.getShort(offset)), // file mode
-            new Integer(vol.bb.getShort(offset + 26)), // num hard links
-            new Integer(vol.bb.getShort(offset + 2)), // uid
-            new Integer(vol.bb.getShort(offset + 24)), // gid
-            vol.bb.getInt(offset + 4), // size (lower)
-            vol.bb.getInt(offset + 108), // size (upper)
-            vol.bb.getInt(offset + 28), // num of 512 blocks allocated,
-            vol.bb.getInt(offset + 8), // last access time
-            vol.bb.getInt(offset + 12), // creation time
-            vol.bb.getInt(offset + 16), // last modified time
+            id,                           // inode num
+            vol.bb.getShort(offset),      // file mode
+            vol.bb.getShort(offset + 26), // num hard links
+            vol.bb.getShort(offset + 2),  // uid
+            vol.bb.getShort(offset + 24), // gid
+            vol.bb.getInt(offset + 4),    // size (lower)
+            vol.bb.getInt(offset + 108),  // size (upper)
+            vol.bb.getInt(offset + 28),   // num of 512 blocks allocated,
+            vol.bb.getInt(offset + 8),    // last access time
+            vol.bb.getInt(offset + 12),   // creation time
+            vol.bb.getInt(offset + 16),   // last modified time
         };
         return stat;
     }

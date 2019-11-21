@@ -5,6 +5,9 @@ import java.lang.ref.*;
 import java.text.*;
 
 public class Volume {
+    public static final int BLOCK_LEN = 1024;
+    public static final int DATABLOCK_PT_LEN = 4;
+
     private String vol_filename;
     private Inode root_inode;
     private File cwd;
