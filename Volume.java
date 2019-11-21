@@ -123,26 +123,25 @@ public class Volume {
     }
 
     public void change_dir(String filename) {
-        Inode lookup_result = cwd.get_inode().lookup(filename);
-        if (lookup_result == null) {
-            System.out.println("cd: " + filename + ": No such file or directory");
-            return;
+        try {
+            Inode lookup_result = cwd.get_inode().lookup(filename);
+            if (!lookup_result.is_directory()) {
+                throw new FileSystemException(20);
+            }
+            LinkedList<String> path = cwd.get_path();
+            switch (filename) {
+                case ".":
+                    break;
+                case "..":
+                    if (path.size() != 1) path.removeLast();
+                    break;
+                default:
+                    path.add(filename);
+                    break;
+            }
+            cwd = new File(this, filename, path, lookup_result);
+        } catch (FileSystemException e) {
+            e.print_err_msg("stat: " + filename);
         }
-        if (!lookup_result.is_directory()) {
-            System.out.println("cd: " + filename + ": Not a directory");
-            return;
-        }
-        LinkedList<String> path = cwd.get_path();
-        switch (filename) {
-            case ".":
-                break;
-            case "..":
-                if (path.size() != 1) path.removeLast();
-                break;
-            default:
-                path.add(filename);
-                break;
-        }
-        cwd = new File(this, filename, path, lookup_result);
     }
 }

@@ -102,6 +102,20 @@ public class Inode {
         return false;
     }
 
+    public int get_datablock_pt(int datablock_id) {
+        if (datablock_id < 12) {
+            return vol.bb.getInt(offset + 40 + datablock_id * 4) * 1024;
+        } else if (datablock_id < 268) { // 13, 14, 15 is probably not right, not very clear about how indirect inode works currently
+            return vol.bb.getInt(vol.bb.getInt(offset + 88) * 1024 + (datablock_id - 12) * 4) * 1024;
+        } else if (datablock_id < 65804) {
+            return vol.bb.getInt(vol.bb.getInt(vol.bb.getInt(offset + 92) * 1024 + (datablock_id - 268) / 256 * 4) * 1024 + (datablock_id - 268) * 4) * 1024;
+        } else if (datablock_id < 16843020) {
+            return 0;
+            //return new Inode(vol, id, Volume.this.bb.getInt(Volume.this.bb.getInt(Volume.this.bb.getInt(inode_offset + 128 * 15) * 1024) * 1024) * 1024);
+        }
+        return 0;
+    }
+
     public int file_size() { // lower only
         return vol.bb.getInt(offset + 4);
     }

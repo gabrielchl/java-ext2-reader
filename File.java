@@ -2,6 +2,8 @@ import java.util.*;
 import java.text.*;
 
 public class File {
+    long position;
+
     Volume vol;
     int offset;
     String filename;
@@ -9,6 +11,7 @@ public class File {
     Inode inode;
 
     public File(Volume vol, String filename, LinkedList<String> path, Inode inode) {
+        position = 0;
         this.vol = vol;
         offset = inode.datablock_pointer();
         this.filename = filename;
@@ -33,7 +36,40 @@ public class File {
         return filename;
     }
 
-    public LinkedList<File> read_dir() { // WRONG INODE FOR NOW
+    public byte[] read(long offset, long length) {
+        position += (offset > get_size() - position) ? get_size() - position : offset;
+        return read(length);
+    }
+
+    public byte[] read(long length) {
+        long return_length = (length > get_size() - position) ? get_size() - position : length;
+        long start_pos = this.offset + position;
+        byte[] ret = new byte[(int)return_length + 1024];
+        long temp_pos = position;
+        for (long i = 0; i < return_length;) {
+            int datablock_pt = inode.get_datablock_pt((int)temp_pos / 1024);
+            //ret += ;
+            System.out.println("inode: " + inode.id + "inode offset: " + inode.offset);
+            System.out.println("pos: " + temp_pos + "\ndb pointer: " + datablock_pt + "\nsource start: " + datablock_pt / 1024 * 1024 + "\nsource end:" + (datablock_pt / 1024 * 1024 + 1024) + "\ntarget start:" + i + "\ntarget end:" + (i + 1024));
+            System.arraycopy(Arrays.copyOfRange(vol.bb.array(), datablock_pt / 1024 * 1024, datablock_pt / 1024 * 1024 + 1024), 0, ret, (int)i, (int)i + 1024);
+            i += 1024;
+            temp_pos += 1024;
+        }
+        //byte[] ret = Arrays.copyOfRange(vol.bb.array(), (int)start_pos, (int)start_pos + (int)length);
+        position += return_length;
+        return ret;
+    }
+
+    public long get_position() {
+        return position;
+    }
+
+    public long get_size() {
+        int[] file_stat = get_inode().stat();
+        return file_stat[6] << 32 | file_stat[5];
+    }
+
+    public LinkedList<File> read_dir() {
         LinkedList<File> dir_files = new LinkedList<File>();
         int dir_entry_pointer = 0;
         int dir_entry_len = 0;

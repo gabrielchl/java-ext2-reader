@@ -136,8 +136,9 @@ public class Main {
             int[] stat = target_inode.stat();
             System.out.println("  File: " + target_filename);
             TablePrinter table_printer = new TablePrinter();
+            long file_size = stat[6] << 32 | stat[5];
             table_printer.add_row(new String[]{
-                "  Size: " + stat[5] + " ",
+                "  Size: " + file_size + " ",
                 "Blocks: " + stat[7] + " ",
                 "IO Block: 1024 ",
                 file_type_string(stat[1])
@@ -212,11 +213,15 @@ public class Main {
             if (target_inode.is_directory()) {
                 throw new FileSystemException(21);
             }
-            char[] content = new char[target_inode.file_size()];
+            LinkedList<String> target_path = new LinkedList<String>(vol.get_cwd().get_path());
+            target_path.add(target_filename);
+            File target_file = new File(vol, target_filename, target_path, target_inode);
+            System.out.println(new String(target_file.read(target_file.get_size())));
+            /**char[] content = new char[target_inode.file_size()];
             for (int i = 0; i < target_inode.file_size(); i++) {
                 content[i] = (char)vol.bb.get(target_inode.datablock_pointer() + i);
             }
-            System.out.println(new String(content));
+            System.out.println(new String(content));**/
         } catch (FileSystemException e) {
             e.print_err_msg("stat: " + target_filename);
         }
