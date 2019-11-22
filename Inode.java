@@ -54,7 +54,7 @@ public class Inode {
         this.offset = offset;
     }
 
-    public Inode lookup(String filename) throws FileSystemException { // void for now
+    public Inode lookup(String filename) throws FileSystemException {
         int dir_entries_offset = vol.bb.getInt(offset + 40) * 1024;
         int dir_entry_pointer = 0;
         int dir_entry_len = 0;
@@ -78,7 +78,7 @@ public class Inode {
 
     public String filename_color() {
         String color_string = new String();
-        if ((vol.bb.getShort(offset) & 0x4000) == 0x4000) {
+        if (is_directory()) {
             color_string += Main.BOLD_FONT + Main.BLUE_COL;
         }
         return color_string;
@@ -96,28 +96,56 @@ public class Inode {
         return vol.bb.getShort(offset + 26);
     }
 
-    public Boolean is_directory() {
-        if ((vol.bb.getShort(offset) & 0x4000) == 0x4000) {
-            return true;
-        }
-        return false;
+    public boolean is_directory() {
+        return (vol.bb.getShort(offset) & 0xF000) == 0x4000;
     }
 
     public int get_datablock_pt(int datablock_id) {
-        int dir_pt_max = 12;
-        int indir_pt_max = dir_pt_max + Volume.BLOCK_LEN / Volume.DATABLOCK_PT_LEN; // 268
-        int dbl_indir_pt_max = indir_pt_max + (int)Math.pow(Volume.BLOCK_LEN / Volume.DATABLOCK_PT_LEN, 2); // 65804
-        int trpl_indir_pt_max = dbl_indir_pt_max + (int)Math.pow(Volume.BLOCK_LEN / Volume.DATABLOCK_PT_LEN, 3); // 16843020
-        if (datablock_id < dir_pt_max) {
+        // int dir_pt_max = 12;
+        // int indir_pt_max = dir_pt_max + Volume.BLOCK_LEN / Volume.DATABLOCK_PT_LEN; // 268
+        // int dbl_indir_pt_max = indir_pt_max + (int)Math.pow(Volume.BLOCK_LEN / Volume.DATABLOCK_PT_LEN, 2); // 65804
+        // int trpl_indir_pt_max = dbl_indir_pt_max + (int)Math.pow(Volume.BLOCK_LEN / Volume.DATABLOCK_PT_LEN, 3); // 16843020
+        // if (datablock_id < dir_pt_max) {
+        //     return vol.bb.getInt(offset + 40 + datablock_id * 4) * Volume.BLOCK_LEN;
+        // } else if (datablock_id < indir_pt_max) { // 13, 14, 15 is probably not right, not very clear about how indirect inode works currently
+        //     return vol.bb.getInt(vol.bb.getInt(offset + 88) * Volume.BLOCK_LEN + (datablock_id - dir_pt_max) * 4) * Volume.BLOCK_LEN;
+        // } else if (datablock_id < dbl_indir_pt_max) {
+        //     return vol.bb.getInt(vol.bb.getInt(vol.bb.getInt(offset + 92) * Volume.BLOCK_LEN + (datablock_id - indir_pt_max) / Volume.BLOCK_LEN / Volume.DATABLOCK_PT_LEN * 4) * Volume.BLOCK_LEN + (datablock_id - indir_pt_max) * 4) * Volume.BLOCK_LEN;
+        // } else if (datablock_id < trpl_indir_pt_max) {
+        //     return 0;
+        // }
+        // return 0;
+
+
+        if (datablock_id < 12) {
             return vol.bb.getInt(offset + 40 + datablock_id * 4) * Volume.BLOCK_LEN;
-        } else if (datablock_id < indir_pt_max) { // 13, 14, 15 is probably not right, not very clear about how indirect inode works currently
-            return vol.bb.getInt(vol.bb.getInt(offset + 88) * Volume.BLOCK_LEN + (datablock_id - dir_pt_max) * 4) * Volume.BLOCK_LEN;
-        } else if (datablock_id < dbl_indir_pt_max) {
-            return vol.bb.getInt(vol.bb.getInt(vol.bb.getInt(offset + 92) * Volume.BLOCK_LEN + (datablock_id - indir_pt_max) / Volume.BLOCK_LEN / Volume.DATABLOCK_PT_LEN * 4) * Volume.BLOCK_LEN + (datablock_id - indir_pt_max) * 4) * Volume.BLOCK_LEN;
-        } else if (datablock_id < trpl_indir_pt_max) {
-            return 0;
         }
-        return 0;
+
+        datablock_id -= 12;
+        datablock_id++;
+
+        int block_size = 1;
+        int level;
+        for (level = 0; datablock_id >= block_size; level++) {
+            datablock_id -= block_size;
+            block_size *= 256;
+        }
+
+        int[] inds = new int[level];
+        for (int i = 0; i < level; i++) {
+            inds[level-i-1] = datablock_id % 256;
+            datablock_id /= 256;
+        }
+
+        assert datablock_id == 0;
+
+        datablock_id = vol.bb.getInt(offset + 40 + (11 + level) * 4) * Volume.BLOCK_LEN;
+
+        for (int i = 0; i < level; i++) {
+            datablock_id = vol.bb.getInt(datablock_id + inds[i] * 4) * Volume.BLOCK_LEN;
+        }
+
+        return datablock_id;
     }
 
     public int file_size() { // lower only

@@ -44,21 +44,22 @@ public class File {
     public byte[] read(long length) {
         long return_length = (length > get_size() - position) ? get_size() - position : length;
         long start_pos = this.offset + position;
-        byte[] ret = new byte[(int)return_length + 2048];
+        byte[] ret = new byte[(int)return_length];
         long temp_pos = position;
+        int datablock_pt = inode.get_datablock_pt((int)temp_pos / 1024);
+        vol.bb.position(datablock_pt);
         for (long i = 0; i < return_length;) {
-            int datablock_pt = inode.get_datablock_pt((int)temp_pos / 1024);
-            //ret += ;
-            System.out.println("inode: " + inode.id + "inode offset: " + inode.offset);
-            System.out.println(vol.bb.array().length);
-            System.out.println(ret.length);
-            System.out.println("pos: " + temp_pos + "\ndb pointer: " + datablock_pt + "\nsource start: " + datablock_pt / 1024 * 1024 + "\nsource end:" + (datablock_pt / 1024 * 1024 + 1024) + "\ntarget start:" + i + "\ntarget end:" + (i + 1024));
-            if (datablock_pt != 0) {
-                System.arraycopy(Arrays.copyOfRange(vol.bb.array(), datablock_pt / 1024 * 1024, datablock_pt / 1024 * 1024 + 1024), 0, ret, (int)i, (int)i + 1024);
+            if (temp_pos % 1024 == 0) {
+                datablock_pt = inode.get_datablock_pt((int)temp_pos / 1024);
+                vol.bb.position(datablock_pt);
             }
-            System.out.println(new String(ret));
-            i += 1024;
-            temp_pos += 1024;
+            if (datablock_pt != 0) {
+                //System.arraycopy(Arrays.copyOfRange(vol.bb.array(), datablock_pt / 1024 * 1024, datablock_pt / 1024 * 1024 + 1024), 0, ret, (int)i, (int)i + 1024);
+                ret[(int)temp_pos] = vol.bb.get();
+            }
+            //System.out.println(new String(ret));
+            i ++;
+            temp_pos ++;
         }
         //byte[] ret = Arrays.copyOfRange(vol.bb.array(), (int)start_pos, (int)start_pos + (int)length);
         position += return_length;
