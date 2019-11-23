@@ -114,7 +114,7 @@ public class Main {
                     Integer.toString(file_stat[2]), // num hard links
                     Integer.toString(file_stat[3]), // uid
                     Integer.toString(file_stat[4]), // gid
-                    Integer.toString(file_stat[5]), // size
+                    Long.toString((long)file_stat[6] << 32 | file_stat[5]), // size
                     format_date(file_stat[7], "MMM d HH:mm"), // last access time
                     file.get_filename()
                 };
@@ -154,9 +154,9 @@ public class Main {
             System.out.print("Uid: " + stat[3] + "  ");
             System.out.print("Gid: " + stat[4] + "  ");
             System.out.print("\n");
-            System.out.println("Access: " + format_date(stat[8], "YYYY-MM-dd HH:mm:ss.SSS Z")); // wrong format
+            System.out.println("Access: " + format_date(stat[8], "YYYY-MM-dd HH:mm:ss.SSS Z"));
             System.out.println("Modify: " + format_date(stat[9], "YYYY-MM-dd HH:mm:ss.SSS Z"));
-            System.out.println("Change: " + format_date(stat[9], "YYYY-MM-dd HH:mm:ss.SSS Z")); // not sure what this exactly is
+            System.out.println("Change: " + format_date(stat[9], "YYYY-MM-dd HH:mm:ss.SSS Z"));
             System.out.println(" Birth: " + format_date(stat[10], "YYYY-MM-dd HH:mm:ss.SSS Z"));
         } catch (FileSystemException e) {
             e.print_err_msg("stat: " + target_filename);
@@ -164,7 +164,7 @@ public class Main {
     }
 
     public String file_type_string(int file_mode) {
-        int[] file_types = {0xC000, 0xA000, 0x8000, 0x6000, 0x4000, 0x2000, 0x1000};
+        int[] file_types = {0xC000, 0xA000, 0x8000, 0x6000, 0x4000, 0x2000, 0x1000}; // TODO octal
         String[] file_type_names = {
             "socket",
             "symbolic link",
@@ -197,7 +197,7 @@ public class Main {
                 file_perm_string += file_type_symbols[i];
             }
         }
-        int[] file_perms = {0x0100, 0x0080, 0x0040, 0x0020, 0x0010, 0x0008, 0x0004, 0x0002, 0x0001};
+        int[] file_perms = {0x0100, 0x0080, 0x0040, 0x0020, 0x0010, 0x0008, 0x0004, 0x0002, 0x0001}; // TODO octal
         for (int i = 0; i < 3; i++) {
             file_perm_string += ((file_mode & file_perms[i * 3]) == file_perms[i * 3]) ? 'r' : '-';
             file_perm_string += ((file_mode & file_perms[i * 3 + 1]) == file_perms[i * 3 + 1]) ? 'w' : '-';
@@ -206,17 +206,21 @@ public class Main {
         return file_perm_string;
     }
 
-    public void cat(String command, String[] arguments) {
+    public void cat(String command, String[] arguments) { // TODO loop
         String target_filename = arguments[0];
         try {
-            Inode target_inode = vol.get_cwd().get_inode().lookup(target_filename);
+            Inode target_inode = parse_path(parse_path(target_filename));
             if (target_inode.is_directory()) {
                 throw new FileSystemException(21);
             }
             LinkedList<String> target_path = new LinkedList<String>(vol.get_cwd().get_path());
             target_path.add(target_filename);
             File target_file = new File(vol, target_filename, target_path, target_inode);
-            System.out.println(new String(target_file.read(target_file.get_size())));
+            for (int i = 0; i < target_file.get_size(); i += 1024) {
+                long length = (i <= target_file.get_size() - 1024) ? 1024 : target_file.get_size() - i;
+                System.out.print(new String(target_file.read(length)));
+            }
+            //System.out.print(new String(target_file.read(target_file.get_size())));
             /**char[] content = new char[target_inode.file_size()];
             for (int i = 0; i < target_inode.file_size(); i++) {
                 content[i] = (char)vol.bb.get(target_inode.datablock_pointer() + i);
@@ -225,5 +229,31 @@ public class Main {
         } catch (FileSystemException e) {
             e.print_err_msg("stat: " + target_filename);
         }
+    }
+
+    public LinkedList<String> parse_path(String input_path) {
+        String[] path_filenames = input_path.split("/");
+        LinkedList<String> ret = new LinkedList<String>();
+        if (input_path != "" && input_path.charAt(0) != '/') {
+            ret.addAll(0, vol.get_cwd().get_path());
+        }
+        for (String path_filename : path_filenames) {
+            if (!path_filename.equals("")) {
+                ret.add(path_filename);
+            }
+        }
+        return ret;
+    }
+
+    public Inode parse_path(LinkedList<String> path) {
+        Inode temp = vol.get_root_inode();
+        for (String path_filename : path) {
+            try {
+                temp = temp.lookup(path_filename);
+            } catch (FileSystemException e) {
+                e.print_err_msg(path_filename);
+            }
+        }
+        return temp;
     }
 }

@@ -43,7 +43,6 @@ public class File {
 
     public byte[] read(long length) {
         long return_length = (length > get_size() - position) ? get_size() - position : length;
-        long start_pos = this.offset + position;
         byte[] ret = new byte[(int)return_length];
         long temp_pos = position;
         int datablock_pt = inode.get_datablock_pt((int)temp_pos / 1024);
@@ -54,14 +53,11 @@ public class File {
                 vol.bb.position(datablock_pt);
             }
             if (datablock_pt != 0) {
-                //System.arraycopy(Arrays.copyOfRange(vol.bb.array(), datablock_pt / 1024 * 1024, datablock_pt / 1024 * 1024 + 1024), 0, ret, (int)i, (int)i + 1024);
-                ret[(int)temp_pos] = vol.bb.get();
+                ret[(int)i] = vol.bb.get();
             }
-            //System.out.println(new String(ret));
-            i ++;
-            temp_pos ++;
+            i++;
+            temp_pos++;
         }
-        //byte[] ret = Arrays.copyOfRange(vol.bb.array(), (int)start_pos, (int)start_pos + (int)length);
         position += return_length;
         return ret;
     }
@@ -72,7 +68,7 @@ public class File {
 
     public long get_size() {
         int[] file_stat = get_inode().stat();
-        return file_stat[6] << 32 | file_stat[5];
+        return (long)file_stat[6] << 32 | file_stat[5];
     }
 
     public LinkedList<File> read_dir() {
