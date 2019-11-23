@@ -53,6 +53,18 @@ public class Main {
         Scanner scanner = new Scanner(System.in);
         while (true) {
             System.out.print(BOLD_FONT + BLUE_COL + vol.get_cwd().get_path_string() + " $ " + RESET);
+            /**String raw_input = new String();
+            Boolean typing = true;
+            while (typing) {
+                String temp = scanner.next();
+                System.out.println("hey");
+                if (temp.equals("x") || temp.equals("\n") || temp.equals("\r\n")) {
+                    typing = false;
+                    System.out.println("test");
+                }
+                raw_input += temp;
+            }
+            String[] input = raw_input.trim().split("[ ]+");**/
             String[] input = scanner.nextLine().trim().split("[ ]+");
             String command = input[0];
             String[] arguments = Arrays.copyOfRange(input, 1, input.length);
@@ -188,20 +200,14 @@ public class Main {
     }
 
     public String file_perm_string(int file_mode) {
-        file_mode = file_mode & 0xFFFF;
         String file_perm_string = "";
-        int[] file_types = {0xC000, 0xA000, 0x8000, 0x6000, 0x4000, 0x2000, 0x1000};
-        char[] file_type_symbols = {'s', 'l', '-', 'b', 'd', 'c', 'p'};
-        for (int i = 0; i < 7; i++) {
-            if ((file_mode & file_types[i]) == file_types[i]) {
-                file_perm_string += file_type_symbols[i];
-            }
-        }
-        int[] file_perms = {0x0100, 0x0080, 0x0040, 0x0020, 0x0010, 0x0008, 0x0004, 0x0002, 0x0001}; // TODO octal
+        char[] file_type_symbols = {'?', '-', 'd', 'c', 'b', 'p', 's', 'l'};
+        System.out.println(file_mode);
+        file_perm_string += file_type_symbols[(file_mode >> 9) & 1];
         for (int i = 0; i < 3; i++) {
-            file_perm_string += ((file_mode & file_perms[i * 3]) == file_perms[i * 3]) ? 'r' : '-';
-            file_perm_string += ((file_mode & file_perms[i * 3 + 1]) == file_perms[i * 3 + 1]) ? 'w' : '-';
-            file_perm_string += ((file_mode & file_perms[i * 3 + 2]) == file_perms[i * 3 + 2]) ? 'x' : '-';
+            file_perm_string += ((file_mode >> ((2 - i) * 3 + 2) & 1) == 1) ? 'r' : '-';
+            file_perm_string += ((file_mode >> ((2 - i) * 3 + 1) & 1) == 1) ? 'w' : '-';
+            file_perm_string += ((file_mode >> ((2 - i) * 3) & 1) == 1) ? 'x' : '-';
         }
         return file_perm_string;
     }
@@ -216,8 +222,8 @@ public class Main {
             LinkedList<String> target_path = new LinkedList<String>(vol.get_cwd().get_path());
             target_path.add(target_filename);
             File target_file = new File(vol, target_filename, target_path, target_inode);
-            for (int i = 0; i < target_file.get_size(); i += 1024) {
-                long length = (i <= target_file.get_size() - 1024) ? 1024 : target_file.get_size() - i;
+            for (long i = 0; i < target_file.get_size(); i += 10240) {
+                long length = (i <= target_file.get_size() - 10240) ? 10240 : target_file.get_size() - i;
                 System.out.print(new String(target_file.read(length)));
             }
             //System.out.print(new String(target_file.read(target_file.get_size())));
@@ -227,15 +233,19 @@ public class Main {
             }
             System.out.println(new String(content));**/
         } catch (FileSystemException e) {
-            e.print_err_msg("stat: " + target_filename);
+            e.print_err_msg("cat: " + target_filename);
         }
     }
 
     public LinkedList<String> parse_path(String input_path) {
         String[] path_filenames = input_path.split("/");
         LinkedList<String> ret = new LinkedList<String>();
-        if (input_path != "" && input_path.charAt(0) != '/') {
-            ret.addAll(0, vol.get_cwd().get_path());
+        if (vol.get_cwd().get_path().size() > 1 && input_path != "" && input_path.charAt(0) != '/') {
+            for (String path_filename : vol.get_cwd().get_path()) {
+                if (!path_filename.equals("")) {
+                    ret.add(path_filename);
+                }
+            }
         }
         for (String path_filename : path_filenames) {
             if (!path_filename.equals("")) {
@@ -252,6 +262,7 @@ public class Main {
                 temp = temp.lookup(path_filename);
             } catch (FileSystemException e) {
                 e.print_err_msg(path_filename);
+                break;
             }
         }
         return temp;

@@ -142,6 +142,9 @@ public class Inode {
         datablock_id = vol.bb.getInt(offset + 40 + (11 + level) * 4) * Volume.BLOCK_LEN;
 
         for (int i = 0; i < level; i++) {
+            if (datablock_id == 0)
+                return datablock_id;
+
             datablock_id = vol.bb.getInt(datablock_id + inds[i] * 4) * Volume.BLOCK_LEN;
         }
 

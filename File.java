@@ -45,11 +45,12 @@ public class File {
         long return_length = (length > get_size() - position) ? get_size() - position : length;
         byte[] ret = new byte[(int)return_length];
         long temp_pos = position;
-        int datablock_pt = inode.get_datablock_pt((int)temp_pos / 1024);
+        int datablock_pt = inode.get_datablock_pt((int)(temp_pos / 1024));
         vol.bb.position(datablock_pt);
         for (long i = 0; i < return_length;) {
             if (temp_pos % 1024 == 0) {
-                datablock_pt = inode.get_datablock_pt((int)temp_pos / 1024);
+                datablock_pt = inode.get_datablock_pt((int)(temp_pos / 1024)); // (int)temp_pos / 1024 = block # of the position in the file
+                //System.out.println(datablock_pt);
                 vol.bb.position(datablock_pt);
             }
             if (datablock_pt != 0) {
