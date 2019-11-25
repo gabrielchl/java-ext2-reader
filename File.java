@@ -46,7 +46,7 @@ public class File {
         byte[] ret = new byte[(int)return_length];
         long temp_pos = position;
         int datablock_pt = inode.get_datablock_pt((int)(temp_pos / 1024));
-        vol.bb.position(datablock_pt);
+        vol.bb.position(datablock_pt + (int)(temp_pos % 1024));
         for (long i = 0; i < return_length;) {
             if (temp_pos % 1024 == 0) {
                 datablock_pt = inode.get_datablock_pt((int)(temp_pos / 1024)); // (int)temp_pos / 1024 = block # of the position in the file

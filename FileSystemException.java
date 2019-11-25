@@ -130,18 +130,24 @@ public class FileSystemException extends Exception {
         "Owner died",
         "State not recoverable"
     };
-    private int err_no;
+    public int errno;
+    public String name;
 
-    public FileSystemException(int err_no) {
-        super(Integer.toString(err_no));
-        this.err_no = err_no;
+    public FileSystemException(int errno, String name) {
+        super(Integer.toString(errno));
+        this.errno = errno;
+        this.name = name;
     }
 
-    public int err_no() {
-        return err_no;
+    public FileSystemException(int errno) {
+        this(errno, null);
     }
 
     public void print_err_msg(String prefix) {
-        System.out.println(prefix + ": " + err_msgs[err_no - 1]);
+        if (name != null) {
+            System.err.println(prefix + ": " + name + ": " + err_msgs[errno - 1]);
+        } else {
+            System.err.println(prefix + ": " + err_msgs[errno - 1]);
+        }
     }
 }
