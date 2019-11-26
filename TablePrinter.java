@@ -22,21 +22,30 @@ public class TablePrinter {
         }
         for (String[] row : rows) {
             for (int i = 0; i < row.length; i++) {
-                System.out.print(String.format("%-" + (col_lengths[i] + 1) + "s", row[i]));
+                System.out.print(row[i]);
+                for (int j = 0; j < col_lengths[i] - string_length(row[i]) + 1; j++) {
+                    System.out.print(" ");
+                }
             }
             System.out.print("\n");
         }
     }
 
     public int string_length(String string) {
-        Pattern pattern = Pattern.compile("\\.*?u.*?m");
-        Matcher matcher = pattern.matcher(string);
         int length = string.length();
-        /**while (matcher.find()) {
-            String s = matcher.group(1);
-            System.out.println("match");
-            length -= s.length();
-        }**/
+        boolean color = false;
+        for (int i = 0; i < string.length(); i++) {
+            if (string.charAt(i) == (char)0x1b) {
+                color = true;
+            }
+
+            if (color) {
+                if (string.charAt(i) == 'm') {
+                    color = false;
+                }
+                length--;
+            }
+        }
         return length;
     }
 }
