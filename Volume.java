@@ -11,7 +11,6 @@ public class Volume {
 
     private String vol_filename;
     private Inode root_inode;
-    private File cwd;
 
     private int num_blocks;
     private int num_inodes;
@@ -73,10 +72,6 @@ public class Volume {
 
             //System.out.println("-----------------Inode 2----------------");
 
-            root_inode = new Inode(this, 2, inode_table_pointer + 128); // inode 2
-            LinkedList<String> root_path = new LinkedList<String>(Arrays.asList(""));
-            cwd = new File(this, "", root_path, root_inode);
-
             /**System.out.println("------------Inode 2 > Block 0-----------");
 
             System.out.println("Inode: " + bb.getInt(bb.getInt(1024 * 84 + 128 + 40) * 1024));
@@ -115,37 +110,9 @@ public class Volume {
             return new Inode(this, id, Volume.this.bb.getInt(Volume.this.bb.getInt(Volume.this.bb.getInt(inode_offset + 128 * 15) * 1024) * 1024) * 1024);
         }
         return null;
-        //indirect inode # = 1024 / 4
     }
 
     public Inode get_root_inode() {
         return get_inode(2);
-    }
-
-    public File get_cwd() {
-        return cwd;
-    }
-
-    public void change_dir(String filename) {
-        try {
-            Inode lookup_result = cwd.get_inode().lookup(filename);
-            if (!lookup_result.is_directory()) {
-                throw new FileSystemException(20);
-            }
-            LinkedList<String> path = cwd.get_path();
-            switch (filename) {
-                case ".":
-                    break;
-                case "..":
-                    if (path.size() != 1) path.removeLast();
-                    break;
-                default:
-                    path.add(filename);
-                    break;
-            }
-            cwd = new File(this, filename, path, lookup_result);
-        } catch (FileSystemException e) {
-            e.print_err_msg("stat: " + filename);
-        }
     }
 }

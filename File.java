@@ -7,10 +7,10 @@ public class File {
     Volume vol;
     int offset;
     String filename;
-    LinkedList<String> path;
+    List<String> path;
     Inode inode;
 
-    public File(Volume vol, String filename, LinkedList<String> path, Inode inode) {
+    public File(Volume vol, String filename, List<String> path, Inode inode) {
         position = 0;
         this.vol = vol;
         offset = inode.get_datablock_pt(0);
@@ -19,13 +19,13 @@ public class File {
         this.inode = inode;
     }
 
-    public LinkedList<String> get_path() {
+    public List<String> get_path() {
         return path;
     }
 
     public String get_path_string() {
-        if (path.size() == 1) return "/";
-        return String.join("/", path);
+        if (path.size() == 0) return "/";
+        return "/" + String.join("/", path);
     }
 
     public Inode get_inode() {
@@ -76,8 +76,8 @@ public class File {
         return (long)file_stat[6] << 32 | file_stat[5];
     }
 
-    public LinkedList<File> read_dir() {
-        LinkedList<File> dir_files = new LinkedList<File>();
+    public List<File> read_dir() { // TODO not just look in 1 datablock
+        List<File> dir_files = new LinkedList<File>();
         int dir_entry_pointer = 0;
         int dir_entry_len = 0;
         do {

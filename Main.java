@@ -12,6 +12,7 @@ public class Main {
     public static final String RESET = "\u001b[0m";
 
     private Volume vol;
+    private File cwd;
 
     public static void main(String[] args) {
         new Main();
@@ -19,30 +20,19 @@ public class Main {
 
     public Main() {
         vol = new Volume("./ext2fs");
+        cwd = new File(vol, "", new LinkedList<String>(), vol.get_root_inode());
 
         Scanner scanner = new Scanner(System.in);
 
         Runtime.getRuntime().addShutdownHook(new Thread() {
             @Override
             public void run() {
-                System.out.println("\nGood bye! :)");
+                System.out.println("\n");
             }
         });
 
         while (true) {
-            System.out.print(BOLD_FONT + BLUE_COL + vol.get_cwd().get_path_string() + " $ " + RESET);
-            /**String raw_input = new String();
-            Boolean typing = true;
-            while (typing) {
-                String temp = scanner.next();
-                System.out.println("hey");
-                if (temp.equals("x") || temp.equals("\n") || temp.equals("\r\n")) {
-                    typing = false;
-                    System.out.println("test");
-                }
-                raw_input += temp;
-            }
-            String[] input = raw_input.trim().split("[ ]+");**/
+            System.out.print(BOLD_FONT + BLUE_COL + cwd.get_path_string() + " $ " + RESET);
             String[] input = scanner.nextLine().trim().split("[ ]+");
             String command = input[0];
             String[] arguments = Arrays.copyOfRange(input, 1, input.length);
@@ -60,7 +50,7 @@ public class Main {
                         vol.print_vol_details();
                         break;
                     case "pwd":
-                        System.out.println(vol.get_cwd().get_path_string());
+                        System.out.println(cwd.get_path_string());
                         break;
                     case "ls":
                         cmd_ls(command, arguments);
@@ -74,7 +64,7 @@ public class Main {
                         break;
                     case "cd":
                         if (arguments.length >= 1) {
-                            vol.change_dir(arguments[0]);
+                            cmd_cd(command, arguments);
                         }
                         break;
                     case "cat":
@@ -106,11 +96,20 @@ public class Main {
         }
     }
 
+    public void cmd_cd(String command, String[] arguments) throws FileSystemException {
+        String target_filename = arguments[0];
+        try {
+            cwd = open(target_filename, true);
+        } catch (FileSystemException e) {
+            e.name = target_filename;
+            throw e;
+        }
+    }
+
     public void cmd_ls(String command, String[] arguments) throws FileSystemException {
         if (Arrays.asList(arguments).contains("-l")) { // should be equal
-            //vol.get_cwd().get_inode().list_long();
             TablePrinter table = new TablePrinter();
-            for (File file : vol.get_cwd().read_dir()) {
+            for (File file : cwd.read_dir()) {
                 int[] file_stat = file.get_inode().stat();
                 String[] row = {
                     file_perm_string(file_stat[1]), // rwxrwxrwx
@@ -130,7 +129,7 @@ public class Main {
             }
             table.print_table();
         } else {
-            for (File file : vol.get_cwd().read_dir()) {
+            for (File file : cwd.read_dir()) {
                 if (file.get_inode().is_directory()) {
                     System.out.print(BOLD_FONT + BLUE_COL + file.get_filename() + RESET + " ");
                 } else {
@@ -144,9 +143,11 @@ public class Main {
     public void cmd_stat(String command, String[] arguments) throws FileSystemException {
         String target_filename = arguments[0];
         try {
-            Inode target_inode = vol.get_cwd().get_inode().lookup(target_filename);
+            Inode target_inode = path_to_inode(realpath(target_filename));
             int[] stat = target_inode.stat();
+
             System.out.println("  File: " + target_filename);
+
             TablePrinter table_printer = new TablePrinter();
             long file_size = stat[6] << 32 | stat[5];
             table_printer.add_row(new String[]{
@@ -162,10 +163,12 @@ public class Main {
                 ""
             });
             table_printer.print_table();
+
             System.out.print("Access: (" + Integer.toOctalString(stat[1]).substring(1) + "/" + file_perm_string(stat[1]) + ")  ");
             System.out.print("Uid: " + stat[3] + "  ");
             System.out.print("Gid: " + stat[4] + "  ");
             System.out.print("\n");
+
             System.out.println("Access: " + format_date(stat[8], "YYYY-MM-dd HH:mm:ss.SSS Z"));
             System.out.println("Modify: " + format_date(stat[9], "YYYY-MM-dd HH:mm:ss.SSS Z"));
             System.out.println("Change: " + format_date(stat[9], "YYYY-MM-dd HH:mm:ss.SSS Z"));
@@ -221,37 +224,6 @@ public class Main {
         read_file(arguments[0], 0);
     }
 
-    public LinkedList<String> parse_path(String input_path) throws FileSystemException {
-        String[] path_filenames = input_path.split("/");
-        LinkedList<String> ret = new LinkedList<String>();
-        if (vol.get_cwd().get_path().size() > 1 && input_path != "" && input_path.charAt(0) != '/') {
-            for (String path_filename : vol.get_cwd().get_path()) {
-                if (!path_filename.equals("")) {
-                    ret.add(path_filename);
-                }
-            }
-        }
-        for (String path_filename : path_filenames) {
-            if (!path_filename.equals("")) {
-                ret.add(path_filename);
-            }
-        }
-        return ret;
-    }
-
-    public Inode parse_path(LinkedList<String> path) throws FileSystemException { // TODO stop if errora
-        Inode temp = vol.get_root_inode();
-        for (String path_filename : path) {
-            try {
-                temp = temp.lookup(path_filename);
-            } catch (FileSystemException e) {
-                e.name = path_filename;
-                throw e;
-            }
-        }
-        return temp;
-    }
-
     public void cmd_head(String command, String[] arguments) throws FileSystemException {
         if (arguments[0].charAt(0) == '-') {
             if (arguments[0].equals("-c")) {
@@ -273,12 +245,12 @@ public class Main {
     }
 
     public void read_file(String filename, long offset) throws FileSystemException {
-        File target_file = file_from_filename(filename);
+        File target_file = open(filename, false);
         read_file(filename, offset, target_file.get_size());
     }
 
     public void read_file(String filename, long offset, long length) throws FileSystemException {
-        File target_file = file_from_filename(filename);
+        File target_file = open(filename, false);
         for (long i = 0; i < length; i += 10240) {
             long temp_length = (i <= length - 10240) ? 10240 : length - i;
             if (offset < 0) {
@@ -288,19 +260,59 @@ public class Main {
         }
     }
 
-    public File file_from_filename(String filename) throws FileSystemException { // TODO filetype limit
+    public File open(String filename, boolean directory) throws FileSystemException {
         try {
-            Inode inode = parse_path(parse_path(filename));
-            if (inode.is_directory()) {
+            List<String> path = realpath(filename);
+            Inode inode = path_to_inode(path);
+            if (directory != inode.is_directory()) {
                 throw new FileSystemException(21);
             }
-            LinkedList<String> path = new LinkedList<String>(vol.get_cwd().get_path());
-            path.add(filename);
+
             File file = new File(vol, filename, path, inode);
             return file;
         } catch (FileSystemException e) {
             e.name = filename;
             throw e;
         }
+    }
+
+    public Inode path_to_inode(List<String> path_ll) throws FileSystemException {
+        Inode ino = vol.get_root_inode();
+        for (String path_filename : path_ll) {
+            try {
+                ino = ino.lookup(path_filename);
+            } catch (FileSystemException e) {
+                e.name = path_filename;
+                throw e;
+            }
+        }
+        return ino;
+    }
+
+    public List<String> realpath(String path_str) {
+        String[] filenames = path_str.split("/");
+        List<String> path_ll = new LinkedList<String>();
+
+        if (path_str.charAt(0) != '/') {
+            for (String filename : cwd.get_path()) {
+                path_ll.add(filename);
+            }
+        }
+        for (String filename : filenames) {
+            switch (filename) {
+                case ".":
+                case "":
+                    break;
+                case "..":
+                    if (path_ll.size() != 0) {
+                        path_ll.remove(path_ll.size() - 1);
+                    }
+                    break;
+                default:
+                    path_ll.add(filename);
+                    break;
+            }
+        }
+        return path_ll;
     }
 }

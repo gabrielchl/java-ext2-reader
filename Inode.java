@@ -54,7 +54,7 @@ public class Inode {
         this.offset = offset;
     }
 
-    public Inode lookup(String filename) throws FileSystemException {
+    public Inode lookup(String filename) throws FileSystemException { // TODO not just look in 1 datablock
         int dir_entries_offset = vol.bb.getInt(offset + 40) * 1024;
         int dir_entry_pointer = 0;
         int dir_entry_len = 0;
