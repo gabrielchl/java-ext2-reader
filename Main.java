@@ -142,14 +142,23 @@ public class Main {
                     Integer.toString(file_stat[4]), // gid
                     Long.toString((long)file_stat[6] << 32 | file_stat[5]), // size
                     format_date(file_stat[7], "MMM d HH:mm"), // last access time
-                    file.get_filename()
+                    "" // filename
                 };
+                if (file.get_inode().is_directory()) {
+                    row[6] = BOLD_FONT + BLUE_COL + file.get_filename() + RESET + " ";
+                } else {
+                    row[6] = file.get_filename() + " ";
+                }
                 table.add_row(row);
             }
             table.print_table();
         } else {
             for (File file : vol.get_cwd().read_dir()) {
-                System.out.print(file.get_filename() + " ");
+                if (file.get_inode().is_directory()) {
+                    System.out.print(BOLD_FONT + BLUE_COL + file.get_filename() + RESET + " ");
+                } else {
+                    System.out.print(file.get_filename() + " ");
+                }
             }
             System.out.print("\n");
         }
@@ -170,7 +179,7 @@ public class Main {
                 file_type_string(stat[1])
             });
             table_printer.add_row(new String[]{
-                "Device: N/A ", // LIGHT_GREY_COL + "Device: N/A " + RESET (color not supported in table printer for now)
+                LIGHT_GREY_COL + "Device: N/A " + RESET, //(color not supported in table printer for now)
                 "Inode: " + stat[0] + " ",
                 "Links: " + stat[2],
                 ""
@@ -216,9 +225,13 @@ public class Main {
 
     public String file_perm_string(int file_mode) throws FileSystemException {
         String file_perm_string = "";
-        char[] file_type_symbols = {'?', '-', 'd', 'c', 'b', 'p', 's', 'l'};
-        System.out.println(file_mode);
-        file_perm_string += file_type_symbols[(file_mode >> 9) & 7];
+        int[] file_types = {0xC000, 0xA000, 0x8000, 0x6000, 0x4000, 0x2000, 0x1000};
+        char[] file_type_symbols = {'s', 'l', '-', 'b', 'd', 'c', 'p'};
+        for (int i = 0; i < 7; i++) {
+            if ((file_mode & 0xC000) == file_types[i]) {
+                file_perm_string += file_type_symbols[i];
+            }
+        }
         for (int i = 0; i < 3; i++) {
             file_perm_string += ((file_mode >> ((2 - i) * 3 + 2) & 1) == 1) ? 'r' : '-';
             file_perm_string += ((file_mode >> ((2 - i) * 3 + 1) & 1) == 1) ? 'w' : '-';

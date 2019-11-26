@@ -13,7 +13,7 @@ public class File {
     public File(Volume vol, String filename, LinkedList<String> path, Inode inode) {
         position = 0;
         this.vol = vol;
-        offset = inode.datablock_pointer();
+        offset = inode.get_datablock_pt(0);
         this.filename = filename;
         this.path = path;
         this.inode = inode;
@@ -61,6 +61,10 @@ public class File {
         }
         position += return_length;
         return ret;
+    }
+
+    public void seek(long position) {
+
     }
 
     public long get_position() {
