@@ -18,39 +18,17 @@ public class Main {
     }
 
     public Main() {
-        //Volume vol = new Volume('./ext2fs');
-        Helper helper = new Helper();
-        /**helper.dumpHexBytes("ABC".getBytes());
-        System.out.println("");
-        helper.dumpHexBytes("ABCDEFG#".getBytes());
-        System.out.println("");
-        helper.dumpHexBytes("ABCDEFG#HIJKL".getBytes());
-        System.out.println("");
-        helper.dumpHexBytes("ABCDEFG#HIJKLMN#".getBytes());
-        System.out.println("");
-        helper.dumpHexBytes("ABCDEFG#HIJKLMN#OP".getBytes());
-        System.out.println("");
-        helper.dumpHexBytes("ABCDEFG#HIJKLMN#OPQRSTU#".getBytes());
-        System.out.println("");
-        helper.dumpHexBytes("ABCDEFG#HIJKLMN#OPQRSTU#VW".getBytes());
-        System.out.println("");
-        helper.dumpHexBytes("ABCDEFG#HIJKLMN#OPQRSTU#VWXYZAA#".getBytes());**/
-
-        /**try {
-            RandomAccessFile vol = new RandomAccessFile("ext2fs", "r");
-            int length = (int)vol.length();
-            byte[] b = new byte[1124];
-            vol.readFully(b);
-            helper.dumpHexBytes(b);
-        } catch (Exception e) {
-
-        }**/
-
         vol = new Volume("./ext2fs");
-        //vol.get_root_inode().lookup(".").details();
-        //vol.get_root_inode().lookup("deep").details();
 
         Scanner scanner = new Scanner(System.in);
+
+        Runtime.getRuntime().addShutdownHook(new Thread() {
+            @Override
+            public void run() {
+                System.out.println("\nGood bye! :)");
+            }
+        });
+
         while (true) {
             System.out.print(BOLD_FONT + BLUE_COL + vol.get_cwd().get_path_string() + " $ " + RESET);
             /**String raw_input = new String();
@@ -116,7 +94,6 @@ public class Main {
                         break;
                     case "quit":
                     case "exit":
-                        System.out.println("Good bye! :)");
                         System.exit(0);
                         break;
                     default:
