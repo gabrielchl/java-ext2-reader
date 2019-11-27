@@ -109,8 +109,10 @@ public class Main {
     public void cmd_ls(String command, String[] arguments) throws FileSystemException {
         if (Arrays.asList(arguments).contains("-l")) { // should be equal
             TablePrinter table = new TablePrinter();
-            for (File file : cwd.read_dir()) {
-                int[] file_stat = file.get_inode().stat();
+            for (String filename : cwd.read_dir()) {
+                List<String> path = realpath(filename);
+                Inode inode = path_to_inode(path);
+                int[] file_stat = inode.stat();
                 String[] row = {
                     file_perm_string(file_stat[1]), // rwxrwxrwx
                     Integer.toString(file_stat[2]), // num hard links
@@ -120,20 +122,22 @@ public class Main {
                     format_date(file_stat[7], "MMM d HH:mm"), // last access time
                     "" // filename
                 };
-                if (file.get_inode().is_directory()) {
-                    row[6] = BOLD_FONT + BLUE_COL + file.get_filename() + RESET + " ";
+                if (inode.is_directory()) {
+                    row[6] = BOLD_FONT + BLUE_COL + filename + RESET + " ";
                 } else {
-                    row[6] = file.get_filename() + " ";
+                    row[6] = filename + " ";
                 }
                 table.add_row(row);
             }
             table.print_table();
         } else {
-            for (File file : cwd.read_dir()) {
-                if (file.get_inode().is_directory()) {
-                    System.out.print(BOLD_FONT + BLUE_COL + file.get_filename() + RESET + " ");
+            for (String filename : cwd.read_dir()) {
+                List<String> path = realpath(filename);
+                Inode inode = path_to_inode(path);
+                if (inode.is_directory()) {
+                    System.out.print(BOLD_FONT + BLUE_COL + filename + RESET + " ");
                 } else {
-                    System.out.print(file.get_filename() + " ");
+                    System.out.print(filename + " ");
                 }
             }
             System.out.print("\n");
@@ -208,7 +212,7 @@ public class Main {
         int[] file_types = {0xC000, 0xA000, 0x8000, 0x6000, 0x4000, 0x2000, 0x1000};
         char[] file_type_symbols = {'s', 'l', '-', 'b', 'd', 'c', 'p'};
         for (int i = 0; i < 7; i++) {
-            if ((file_mode & 0xC000) == file_types[i]) {
+            if ((file_mode & 0xF000) == file_types[i]) {
                 file_perm_string += file_type_symbols[i];
             }
         }
@@ -265,7 +269,7 @@ public class Main {
             List<String> path = realpath(filename);
             Inode inode = path_to_inode(path);
             if (directory != inode.is_directory()) {
-                throw new FileSystemException(21);
+                throw new FileSystemException(directory ? 20 : 21);
             }
 
             File file = new File(vol, filename, path, inode);
@@ -294,7 +298,7 @@ public class Main {
         List<String> path_ll = new LinkedList<String>();
 
         if (path_str.charAt(0) != '/') {
-            for (String filename : cwd.get_path()) {
+            for (String filename : cwd.path) {
                 path_ll.add(filename);
             }
         }

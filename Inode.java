@@ -44,9 +44,9 @@ Directory entry Contents
 +--------+--------+---------------------+
 **/
 public class Inode {
-    Volume vol;
-    int id;
-    int offset;
+    public final Volume vol;
+    public final int id;
+    public final int offset;
 
     public Inode(Volume vol, int id, int offset) {
         this.vol = vol;
@@ -55,20 +55,17 @@ public class Inode {
     }
 
     public Inode lookup(String filename) throws FileSystemException { // TODO not just look in 1 datablock
-        int dir_entries_offset = vol.bb.getInt(offset + 40) * 1024;
-        int dir_entry_pointer = 0;
-        int dir_entry_len = 0;
-        do {
-            char[] current_filename = new char[vol.bb.get(dir_entries_offset + dir_entry_pointer + 6)];
-            for (int i = 0; i < current_filename.length; i++) {
-                current_filename[i] = (char)vol.bb.get(i + dir_entries_offset + dir_entry_pointer + 8);
-            }
-            if (filename.equals(new String(current_filename))) {
-                return vol.get_inode(vol.bb.getShort(dir_entries_offset + dir_entry_pointer));
-            }
-            dir_entry_len = vol.bb.getShort(dir_entries_offset + dir_entry_pointer + 4);
-            dir_entry_pointer += dir_entry_len;
-        } while (dir_entry_len != 0 && dir_entry_pointer < 1024);
+        for (int direntry_offset : iter_direntries()) {
+            int datablock_pt = get_datablock_pt(direntry_offset / Volume.BLOCK_LEN);
+            char[] current_filename = new char[vol.bb.get(datablock_pt + direntry_offset % Volume.BLOCK_LEN + 6)];
+
+            for (int i = 0; i < current_filename.length; i++)
+                current_filename[i] = (char)vol.bb.get(datablock_pt + direntry_offset % Volume.BLOCK_LEN + 8 + i);
+
+            if (filename.equals(new String(current_filename)))
+                return vol.get_inode(vol.bb.getInt(datablock_pt + direntry_offset % Volume.BLOCK_LEN));
+        }
+
         throw new FileSystemException(2);
     }
 
@@ -101,22 +98,6 @@ public class Inode {
     }
 
     public int get_datablock_pt(int datablock_id) {
-        // int dir_pt_max = 12;
-        // int indir_pt_max = dir_pt_max + Volume.BLOCK_LEN / Volume.DATABLOCK_PT_LEN; // 268
-        // int dbl_indir_pt_max = indir_pt_max + (int)Math.pow(Volume.BLOCK_LEN / Volume.DATABLOCK_PT_LEN, 2); // 65804
-        // int trpl_indir_pt_max = dbl_indir_pt_max + (int)Math.pow(Volume.BLOCK_LEN / Volume.DATABLOCK_PT_LEN, 3); // 16843020
-        // if (datablock_id < dir_pt_max) {
-        //     return vol.bb.getInt(offset + 40 + datablock_id * 4) * Volume.BLOCK_LEN;
-        // } else if (datablock_id < indir_pt_max) { // 13, 14, 15 is probably not right, not very clear about how indirect inode works currently
-        //     return vol.bb.getInt(vol.bb.getInt(offset + 88) * Volume.BLOCK_LEN + (datablock_id - dir_pt_max) * 4) * Volume.BLOCK_LEN;
-        // } else if (datablock_id < dbl_indir_pt_max) {
-        //     return vol.bb.getInt(vol.bb.getInt(vol.bb.getInt(offset + 92) * Volume.BLOCK_LEN + (datablock_id - indir_pt_max) / Volume.BLOCK_LEN / Volume.DATABLOCK_PT_LEN * 4) * Volume.BLOCK_LEN + (datablock_id - indir_pt_max) * 4) * Volume.BLOCK_LEN;
-        // } else if (datablock_id < trpl_indir_pt_max) {
-        //     return 0;
-        // }
-        // return 0;
-
-
         if (datablock_id < 12) {
             return vol.bb.getInt(offset + 40 + datablock_id * 4) * Volume.BLOCK_LEN;
         }
@@ -176,7 +157,55 @@ public class Inode {
         return new Date(vol.bb.getInt(offset + 16));
     }
 
-    //public void stat() {
+    public Iterable<Integer> iter_direntries() {
+        return new DirEntryIterable();
+    }
 
-    //}
+    public class DirEntryIterable implements Iterable<Integer> {
+        public Iterator<Integer> iterator() {
+            return new DirEntryIterator();
+        }
+    }
+
+    public class DirEntryIterator implements Iterator<Integer> {
+        private int direntry_offset;
+
+        public DirEntryIterator() {
+            direntry_offset = 0;
+
+            valid_direntry();
+        }
+
+        public boolean hasNext() {
+            return direntry_offset < file_size();
+        }
+
+        public Integer next() {
+            if (!hasNext()) {
+                throw new NoSuchElementException("There are no more directory elements.");
+            } else {
+                int old_direntry_offset = direntry_offset;
+
+                next_direntry();
+                valid_direntry();
+
+                return old_direntry_offset;
+            }
+        }
+
+        private void valid_direntry() {
+            while (hasNext()) {
+                int datablock_pt = get_datablock_pt(direntry_offset / Volume.BLOCK_LEN);
+                int inode = vol.bb.getInt(datablock_pt + direntry_offset % Volume.BLOCK_LEN);
+                if (inode != 0)
+                    break;
+                next_direntry();
+            }
+        }
+
+        private void next_direntry() {
+            int datablock_pt = get_datablock_pt(direntry_offset / Volume.BLOCK_LEN);
+            direntry_offset += vol.bb.getShort(datablock_pt + direntry_offset % Volume.BLOCK_LEN + 4);
+        }
+    }
 }

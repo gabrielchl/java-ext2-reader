@@ -8,6 +8,7 @@ import java.nio.channels.FileChannel;
 public class Volume {
     public static final int BLOCK_LEN = 1024;
     public static final int DATABLOCK_PT_LEN = 4;
+    public static final int INODE_LEN = 128;
 
     private String vol_filename;
     private Inode root_inode;
@@ -96,20 +97,11 @@ public class Volume {
     }
 
     public Inode get_inode(int id) {
-        int block_group_num = id / 1712;
-        int inode_num = id % 1712;
-        int inode_offset = 1024 + 1024 + 32 * block_group_num + 8; // boot block + super block + group descriptors + offset to inode table pointer
-        inode_offset = bb.getInt(inode_offset) * 1024;
-        if (inode_num < 13) {
-            return new Inode(this, id, inode_offset + 128 * (inode_num - 1));
-        } else if (inode_num == 13) { // 13, 14, 15 is probably not right, not very clear about how indirect inode works currently
-            return new Inode(this, id, Volume.this.bb.getInt(inode_offset + 128 * 13) * 1024);
-        } else if (inode_num == 14) {
-            return new Inode(this, id, Volume.this.bb.getInt(Volume.this.bb.getInt(inode_offset + 128 * 14) * 1024) * 1024);
-        } else if (inode_num == 15) {
-            return new Inode(this, id, Volume.this.bb.getInt(Volume.this.bb.getInt(Volume.this.bb.getInt(inode_offset + 128 * 15) * 1024) * 1024) * 1024);
-        }
-        return null;
+        int block_group_num = (id - 1) / 1712;
+        int inode_num = (id - 1) % 1712;
+        int inode_offset = BLOCK_LEN + BLOCK_LEN + 32 * block_group_num + 8;
+        inode_offset = bb.getInt(inode_offset) * BLOCK_LEN;
+        return new Inode(this, id, inode_offset + INODE_LEN * inode_num);
     }
 
     public Inode get_root_inode() {
