@@ -42,17 +42,33 @@ Directory entry Contents
 | 8 + N  | N      | Name                |
 +--------+--------+---------------------+
 **/
+/**
+ * An inode in the filesystem.
+ */
 public class Inode {
     public final Volume vol;
     public final int id;
     public final int offset;
 
+    /**
+     * Sets up the inode object.
+     *
+     * @param   vol     The volume the inode is in
+     * @param   id      ID of this inode
+     * @param   offset  Start position of inode in whole filesystem
+     */
     public Inode(Volume vol, int id, int offset) {
         this.vol = vol;
         this.id = id;
         this.offset = offset;
     }
 
+    /**
+     * Finds (filename) in inode.
+     *
+     * @param   filename    The name of the file to look for
+     * @return  The inode of the file found
+     */
     public Inode lookup(String filename) throws FileSystemException { // TODO not just look in 1 datablock
         for (int direntry_offset : iter_direntries()) {
             int datablock_pt = get_datablock_pt(direntry_offset / Volume.BLOCK_LEN);
@@ -68,10 +84,12 @@ public class Inode {
         throw new FileSystemException(2);
     }
 
+    // TODO check if needed
     public int datablock_pointer() {
         return vol.bb.getInt(offset + 40) * 1024;
     }
 
+    // TODO check if needed
     public String filename_color() {
         String color_string = new String();
         if (is_directory()) {
@@ -80,22 +98,48 @@ public class Inode {
         return color_string;
     }
 
+    /**
+     * Gets the owner user id.
+     *
+     * @return  Owner user id
+     */
     public short owner_user_id() {
         return vol.bb.getShort(offset + 2);
     }
 
+    /**
+     * Gets the owner group id.
+     *
+     * @return  Owner group id
+     */
     public short owner_group_id() {
         return vol.bb.getShort(offset + 24);
     }
 
+    /**
+     * Gets the number of hard links.
+     *
+     * @return  Number of hard links
+     */
     public short num_hard_links() {
         return vol.bb.getShort(offset + 26);
     }
 
+    /**
+     * Check if this file is a directory.
+     *
+     * @return  If this file is a directory
+     */
     public boolean is_directory() {
         return (vol.bb.getShort(offset) & 0xF000) == 0x4000;
     }
 
+    /**
+     * Calculates position of datablock from datablock id.
+     *
+     * @param   datablock_id    Id of the datablock of this file
+     * @return  Offset of datablock from head of filesystem
+     */
     public int get_datablock_pt(int datablock_id) {
         if (datablock_id < 12) {
             return vol.bb.getInt(offset + 40 + datablock_id * 4) * Volume.BLOCK_LEN;
@@ -131,10 +175,20 @@ public class Inode {
         return datablock_id;
     }
 
-    public int file_size() { // lower only
+    /**
+     * Gets file size.
+     *
+     * @return  File size
+     */
+    public int file_size() { // TODO make long
         return vol.bb.getInt(offset + 4);
     }
 
+    /**
+     * Gets file stats as an integer array.
+     *
+     * @return   File stats
+     */
     public int[] stat() {
         int[] stat = {
             id,                           // inode num
@@ -150,10 +204,6 @@ public class Inode {
             vol.bb.getInt(offset + 16),   // last modified time
         };
         return stat;
-    }
-
-    public Date last_modified() {
-        return new Date(vol.bb.getInt(offset + 16));
     }
 
     public Iterable<Integer> iter_direntries() {

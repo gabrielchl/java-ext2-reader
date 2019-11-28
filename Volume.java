@@ -5,6 +5,9 @@ import java.lang.ref.*;
 import java.text.*;
 import java.nio.channels.FileChannel;
 
+/**
+ * The filesystem as a volume.
+ */
 public class Volume {
     public static final int BLOCK_LEN = 1024;
     public static final int DATABLOCK_PT_LEN = 4;
@@ -20,7 +23,6 @@ public class Volume {
     private int inode_size;
     public MappedByteBuffer bb;
 
-    private int inode_table_pointer; // TODO temp till i get what a block group is
     /**
      * Opens the Volume represented by the host Windows / Linux file filename.
      *
@@ -69,26 +71,15 @@ public class Volume {
             System.out.println("Free inode count: " + bb.getShort(2062));
             System.out.println("Used directories count: " + bb.getShort(2064));**/
             //System.out.println("Inode table pointer: " + bb.getInt(2056));
-            inode_table_pointer = bb.getInt(2056) * 1024; // in bytes
-
-            //System.out.println("-----------------Inode 2----------------");
-
-            /**System.out.println("------------Inode 2 > Block 0-----------");
-
-            System.out.println("Inode: " + bb.getInt(bb.getInt(1024 * 84 + 128 + 40) * 1024));
-            System.out.println("Length: " + bb.getShort(bb.getInt(1024 * 84 + 128 + 40) * 1024 + 4));
-            System.out.println("Name length: " + bb.get(bb.getInt(1024 * 84 + 128 + 40) * 1024 + 6));
-            System.out.println("File type: " + bb.get(bb.getInt(1024 * 84 + 128 + 40) * 1024 + 7));**/
-            char[] f_filename = new char[1];
-            for (int i = 0; i < f_filename.length; i++) {
-                f_filename[i] = (char)bb.get(i + bb.getInt(1024 * 84 + 128 + 40) * 1024 + 8);
-            }
-            //System.out.println("Filename: " + new String(f_filename));
         } catch (Exception e) {
             e.printStackTrace();
         }
     }
 
+    /**
+     * Prints volume details.
+     * Similar to command df in linux.
+     */
     public void print_vol_details() {
         System.out.println("Filesystem: " + vol_filename);
         System.out.println("1K-blocks:  " + num_blocks);
@@ -96,6 +87,12 @@ public class Volume {
         System.out.println("Use %:      "); // TODO;
     }
 
+    /**
+     * Gets inode from inode number.
+     *
+     * @param   id  Inode number
+     * @return  Inode of id: id
+     */
     public Inode get_inode(int id) {
         int block_group_num = (id - 1) / 1712;
         int inode_num = (id - 1) % 1712;
@@ -104,6 +101,11 @@ public class Volume {
         return new Inode(this, id, inode_offset + INODE_LEN * inode_num);
     }
 
+    /**
+     * Gets the root inode.
+     *
+     * @return  The root inode
+     */
     public Inode get_root_inode() {
         return get_inode(2);
     }

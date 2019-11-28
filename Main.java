@@ -106,8 +106,8 @@ public class Main {
         }
     }
 
-    public void cmd_ls(String command, String[] arguments) throws FileSystemException {
-        if (Arrays.asList(arguments).contains("-l")) { // should be equal
+    public void cmd_ls(String command, String[] arguments) throws FileSystemException { // TODO parse path
+        if (Arrays.asList(arguments).contains("-l")) {
             TablePrinter table = new TablePrinter();
             for (String filename : cwd.read_dir()) {
                 List<String> path = realpath(filename);
@@ -119,7 +119,7 @@ public class Main {
                     Integer.toString(file_stat[3]), // uid
                     Integer.toString(file_stat[4]), // gid
                     Long.toString((long)file_stat[6] << 32 | file_stat[5]), // size
-                    format_date(file_stat[7], "MMM d HH:mm"), // last access time
+                    format_date(file_stat[10], "MMM d HH:mm"), // last modify time
                     "" // filename
                 };
                 if (inode.is_directory()) {
@@ -204,7 +204,7 @@ public class Main {
 
     public String format_date(int date_time, String format) throws FileSystemException {
         SimpleDateFormat simple_date_format = new SimpleDateFormat(format);
-        return simple_date_format.format(date_time);
+        return simple_date_format.format(new Date((long)date_time));
     }
 
     public String file_perm_string(int file_mode) throws FileSystemException {
