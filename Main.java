@@ -4,6 +4,9 @@ import java.util.*;
 import java.util.regex.*;
 import java.text.*;
 
+/**
+ * Main class of the ext2 file system reader.
+ */
 public class Main {
     public static final String BOLD_FONT = "\u001b[1m";
     public static final String LIGHT_GREY_COL = "\u001b[38;5;248m";
@@ -14,10 +17,16 @@ public class Main {
     private Volume vol;
     private File cwd;
 
+    /**
+     * Creates the main object.
+     */
     public static void main(String[] args) {
         new Main();
     }
 
+    /**
+     * The main object.
+     */
     public Main() {
         vol = new Volume("./ext2fs");
         cwd = new File(vol, "", new LinkedList<String>(), vol.get_root_inode());
@@ -96,6 +105,12 @@ public class Main {
         }
     }
 
+    /**
+     * Change directory (cd) command handler.
+     *
+     * @param   command     The command used
+     * @param   arguments   Arguments provided
+     */
     public void cmd_cd(String command, String[] arguments) throws FileSystemException {
         String target_filename = arguments[0];
         try {
@@ -106,13 +121,25 @@ public class Main {
         }
     }
 
+    /**
+     * List directory (ls) command handler.
+     *
+     * @param   command     The command used
+     * @param   arguments   Arguments provided
+     */
     public void cmd_ls(String command, String[] arguments) throws FileSystemException { // TODO parse path
         if (Arrays.asList(arguments).contains("-l")) {
             TablePrinter table = new TablePrinter();
-            for (String filename : cwd.read_dir()) {
-                List<String> path = realpath(filename);
-                Inode inode = path_to_inode(path);
-                int[] file_stat = inode.stat();
+            File file;
+            if (arguments.length < 2) {
+                file = cwd;
+            } else {
+                file = open(arguments[1], true);
+            }
+            for (String filename : file.read_dir()) {
+                List<String> file_path = new LinkedList<String>(file.path);
+                file_path.add(filename);
+                int[] file_stat = path_to_inode(file_path).stat();
                 String[] row = {
                     file_perm_string(file_stat[1]), // rwxrwxrwx
                     Integer.toString(file_stat[2]), // num hard links
@@ -122,7 +149,7 @@ public class Main {
                     format_date(file_stat[10], "MMM d HH:mm"), // last modify time
                     "" // filename
                 };
-                if (inode.is_directory()) {
+                if (path_to_inode(file_path).is_directory()) {
                     row[6] = BOLD_FONT + BLUE_COL + filename + RESET + " ";
                 } else {
                     row[6] = filename + " ";
@@ -131,10 +158,16 @@ public class Main {
             }
             table.print_table();
         } else {
-            for (String filename : cwd.read_dir()) {
-                List<String> path = realpath(filename);
-                Inode inode = path_to_inode(path);
-                if (inode.is_directory()) {
+            File file;
+            if (arguments.length == 0) {
+                file = cwd;
+            } else {
+                file = open(arguments[0], true);
+            }
+            for (String filename : file.read_dir()) {
+                List<String> file_path = new LinkedList<String>(file.path);
+                file_path.add(filename);
+                if (path_to_inode(file_path).is_directory()) {
                     System.out.print(BOLD_FONT + BLUE_COL + filename + RESET + " ");
                 } else {
                     System.out.print(filename + " ");
@@ -144,6 +177,12 @@ public class Main {
         }
     }
 
+    /**
+     * Stat (stat) command handler.
+     *
+     * @param   command     The command used
+     * @param   arguments   Arguments provided
+     */
     public void cmd_stat(String command, String[] arguments) throws FileSystemException {
         String target_filename = arguments[0];
         try {
@@ -183,6 +222,54 @@ public class Main {
         }
     }
 
+    /**
+     * Concatenate (cat) command handler.
+     *
+     * @param   command     The command used
+     * @param   arguments   Arguments provided
+     */
+    public void cmd_cat(String command, String[] arguments) throws FileSystemException {
+        read_file(arguments[0], 0);
+    }
+
+    /**
+     * Head (head) command handler.
+     *
+     * @param   command     The command used
+     * @param   arguments   Arguments provided
+     */
+    public void cmd_head(String command, String[] arguments) throws FileSystemException {
+        if (arguments[0].charAt(0) == '-') {
+            if (arguments[0].equals("-c")) {
+                if (arguments.length >= 3) {
+                    read_file(arguments[2], 0, Integer.parseInt(arguments[1]));
+                }
+            }
+        }
+    }
+
+    /**
+     * Tail (tail) command handler.
+     *
+     * @param   command     The command used
+     * @param   arguments   Arguments provided
+     */
+    public void cmd_tail(String command, String[] arguments) throws FileSystemException {
+        if (arguments[0].charAt(0) == '-') {
+            if (arguments[0].equals("-c")) {
+                if (arguments.length >= 3) {
+                    read_file(arguments[2], Integer.parseInt(arguments[1]) * -1, Integer.parseInt(arguments[1]));
+                }
+            }
+        }
+    }
+
+    /**
+     * Converts file mode from a number to a file type string.
+     *
+     * @param   file_mode   The file mode
+     * @return  File type
+     */
     public String file_type_string(int file_mode) throws FileSystemException {
         int[] file_types = {0xC000, 0xA000, 0x8000, 0x6000, 0x4000, 0x2000, 0x1000}; // TODO octal
         String[] file_type_names = {
@@ -202,11 +289,24 @@ public class Main {
         return "unknown file type";
     }
 
-    public String format_date(int date_time, String format) throws FileSystemException {
+    /**
+     * Returns a formatted date string.
+     *
+     * @param   date_time   Number of seconds since epoch
+     * @param   format      The desired format
+     * @return  Formatted date string
+     */
+    public String format_date(int date_time, String format) throws FileSystemException { // TODO check why printing is wrong
         SimpleDateFormat simple_date_format = new SimpleDateFormat(format);
         return simple_date_format.format(new Date((long)date_time));
     }
 
+    /**
+     * Converts file mode from a number to a file permission string.
+     *
+     * @param   file_mode   The file mode
+     * @return  File permission settings
+     */
     public String file_perm_string(int file_mode) throws FileSystemException {
         String file_perm_string = "";
         int[] file_types = {0xC000, 0xA000, 0x8000, 0x6000, 0x4000, 0x2000, 0x1000};
@@ -224,35 +324,24 @@ public class Main {
         return file_perm_string;
     }
 
-    public void cmd_cat(String command, String[] arguments) throws FileSystemException {
-        read_file(arguments[0], 0);
-    }
-
-    public void cmd_head(String command, String[] arguments) throws FileSystemException {
-        if (arguments[0].charAt(0) == '-') {
-            if (arguments[0].equals("-c")) {
-                if (arguments.length >= 3) {
-                    read_file(arguments[2], 0, Integer.parseInt(arguments[1]));
-                }
-            }
-        }
-    }
-
-    public void cmd_tail(String command, String[] arguments) throws FileSystemException {
-        if (arguments[0].charAt(0) == '-') {
-            if (arguments[0].equals("-c")) {
-                if (arguments.length >= 3) {
-                    read_file(arguments[2], Integer.parseInt(arguments[1]) * -1, Integer.parseInt(arguments[1]));
-                }
-            }
-        }
-    }
-
+    /**
+     * Prints (filename), starting from (offset) bytes.
+     *
+     * @param   filename    Filename to read
+     * @param   offset      Offset in bytes
+     */
     public void read_file(String filename, long offset) throws FileSystemException {
         File target_file = open(filename, false);
         read_file(filename, offset, target_file.get_size());
     }
 
+    /**
+     * Prints (filename), starting from (offset) bytes, to (offset + length) bytes.
+     *
+     * @param   filename    Filename to read
+     * @param   offset      Offset in bytes
+     * @param   length      Length in bytes
+     */
     public void read_file(String filename, long offset, long length) throws FileSystemException {
         File target_file = open(filename, false);
         for (long i = 0; i < length; i += 10240) {
@@ -264,22 +353,35 @@ public class Main {
         }
     }
 
-    public File open(String filename, boolean directory) throws FileSystemException {
+    /**
+     * Gets file from path.
+     *
+     * @param   path        Path of the file to get
+     * @param   directory   If the file should be a directory or not
+     * @return  The file object
+     */
+    public File open(String path, boolean directory) throws FileSystemException {
         try {
-            List<String> path = realpath(filename);
-            Inode inode = path_to_inode(path);
+            List<String> real_path = realpath(path);
+            Inode inode = path_to_inode(real_path);
             if (directory != inode.is_directory()) {
                 throw new FileSystemException(directory ? 20 : 21);
             }
 
-            File file = new File(vol, filename, path, inode);
+            File file = new File(vol, path, real_path, inode);
             return file;
         } catch (FileSystemException e) {
-            e.name = filename;
+            e.name = path;
             throw e;
         }
     }
 
+    /**
+     * Gets inode from path.
+     *
+     * @param   path_ll Path as a list
+     * @return  The inode
+     */
     public Inode path_to_inode(List<String> path_ll) throws FileSystemException {
         Inode ino = vol.get_root_inode();
         for (String path_filename : path_ll) {
@@ -293,6 +395,12 @@ public class Main {
         return ino;
     }
 
+    /**
+     * Gets the clean absolute path.
+     *
+     * @param   path_str    Path as a string
+     * @return  The path as a list
+     */
     public List<String> realpath(String path_str) {
         String[] filenames = path_str.split("/");
         List<String> path_ll = new LinkedList<String>();

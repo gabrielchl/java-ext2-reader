@@ -1,8 +1,12 @@
 import java.util.*;
 
+/**
+ * A helper class.
+ */
 public class Helper {
     public static final String GREY_COL = "\u001b[38;5;245m";
     public static final String RESET_COL = "\u001b[0m";
+
     /**
      * Outputs an array of bytes as returned by read( ) in a readable
      * hexadecimal format, perhaps with printable ASCII codes by the side. Need

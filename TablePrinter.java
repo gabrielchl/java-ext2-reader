@@ -1,17 +1,31 @@
 import java.util.*;
 import java.util.regex.*;
 
+/**
+ * Prints strings arrays in a table format.
+ */
 public class TablePrinter {
     LinkedList<String[]> rows;
 
+    /**
+     * Creates the table printer.
+     */
     public TablePrinter() {
         rows = new LinkedList<String[]>();
     }
 
+    /**
+     * Adds a row of data to the table.
+     *
+     * @param   row     The row of data to be added
+     */
     public void add_row(String[] row) {
         rows.add(row);
     }
 
+    /**
+     * Prints the table.
+     */
     public void print_table() {
         int cols = rows.getFirst().length;
         int[] col_lengths = new int[cols];
@@ -31,6 +45,12 @@ public class TablePrinter {
         }
     }
 
+    /**
+     * Calculate the string length.
+     *
+     * @param   string  The string to calculate the length of
+     * @return  Length of the string
+     */
     public int string_length(String string) {
         int length = string.length();
         boolean color = false;

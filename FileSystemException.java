@@ -1,3 +1,6 @@
+/**
+ * Errors that occurs in the filesystem.
+ */
 public class FileSystemException extends Exception {
     private static final String[] err_msgs = {
         "Operation not permitted",
@@ -133,16 +136,32 @@ public class FileSystemException extends Exception {
     public int errno;
     public String name;
 
+    /**
+     * Creates the exception.
+     *
+     * @param   errno   Error number
+     * @param   name    Prefix of the error message
+     */
     public FileSystemException(int errno, String name) {
         super(Integer.toString(errno));
         this.errno = errno;
         this.name = name;
     }
 
+    /**
+     * Creates the exception, for no prefix errors.
+     *
+     * @param   errno   Error number
+     */
     public FileSystemException(int errno) {
         this(errno, null);
     }
 
+    /**
+     * Prints the error message.
+     *
+     * @param   prefix  Prefix to add before the error message
+     */
     public void print_err_msg(String prefix) {
         if (name != null) {
             System.err.println(prefix + ": " + name + ": " + err_msgs[errno - 1]);

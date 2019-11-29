@@ -84,20 +84,6 @@ public class Inode {
         throw new FileSystemException(2);
     }
 
-    // TODO check if needed
-    public int datablock_pointer() {
-        return vol.bb.getInt(offset + 40) * 1024;
-    }
-
-    // TODO check if needed
-    public String filename_color() {
-        String color_string = new String();
-        if (is_directory()) {
-            color_string += Main.BOLD_FONT + Main.BLUE_COL;
-        }
-        return color_string;
-    }
-
     /**
      * Gets the owner user id.
      *
@@ -206,29 +192,51 @@ public class Inode {
         return stat;
     }
 
+    /**
+     * Creates and returns a DirEntryIterable.
+     */
     public Iterable<Integer> iter_direntries() {
         return new DirEntryIterable();
     }
 
+    /**
+     * Iterable for directory entries.
+     */
     public class DirEntryIterable implements Iterable<Integer> {
         public Iterator<Integer> iterator() {
             return new DirEntryIterator();
         }
     }
 
+    /**
+     * Iterator for directory entries.
+     */
     public class DirEntryIterator implements Iterator<Integer> {
         private int direntry_offset;
 
+        /**
+         * Creates the directory entry iterator with the pointer at the first valid directory entry.
+         */
         public DirEntryIterator() {
             direntry_offset = 0;
 
             valid_direntry();
         }
 
+        /**
+         * Checks if there's a next directory entry.
+         *
+         * @return  If there's a next directory entry
+         */
         public boolean hasNext() {
             return direntry_offset < file_size();
         }
 
+        /**
+         * Gets the next directory entry position.
+         *
+         * @return  Position of the next directory
+         */
         public Integer next() {
             if (!hasNext()) {
                 throw new NoSuchElementException("There are no more directory elements.");
@@ -242,6 +250,9 @@ public class Inode {
             }
         }
 
+        /**
+         * Moves to the next valid directory entry.
+         */
         private void valid_direntry() {
             while (hasNext()) {
                 int datablock_pt = get_datablock_pt(direntry_offset / Volume.BLOCK_LEN);
@@ -252,6 +263,9 @@ public class Inode {
             }
         }
 
+        /**
+         * Gets the next directory entry.
+         */
         private void next_direntry() {
             int datablock_pt = get_datablock_pt(direntry_offset / Volume.BLOCK_LEN);
             direntry_offset += vol.bb.getShort(datablock_pt + direntry_offset % Volume.BLOCK_LEN + 4);
