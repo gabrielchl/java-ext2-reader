@@ -72,6 +72,10 @@ public class Main {
                             vol.print_inode(cwd.inode.id);
                         }
                         break;
+                    case "print-dir-entries":
+                    case "pde":
+                        cmd_pde();
+                        break;
                     case "df":
                     case "vol-details":
                         vol.print_vol_details();
@@ -280,6 +284,29 @@ public class Main {
                 }
             }
         }
+    }
+
+    /**
+     * Print directory entries (pde / print-dir-entries) command handler.
+     */
+    public void cmd_pde() {
+        TablePrinter table = new TablePrinter();
+        table.add_row(new String[]{"Inode", "Length", "Name length", "File type", "Filename"});
+        for (int direntry_offset : cwd.inode.iter_direntries()) {
+            int datablock_pt = cwd.inode.get_datablock_pt(direntry_offset / Volume.BLOCK_LEN);
+            String[] row = new String[5];
+            row[0] = Integer.toString(vol.bb.getInt(datablock_pt + direntry_offset % Volume.BLOCK_LEN));
+            row[1] = Integer.toString(vol.bb.getShort(datablock_pt + direntry_offset % Volume.BLOCK_LEN + 4));
+            char[] filename = new char[vol.bb.get(datablock_pt + direntry_offset % Volume.BLOCK_LEN + 6)];
+            row[2] = Integer.toString(filename.length);
+            row[3] = Integer.toString(vol.bb.get(datablock_pt + direntry_offset % Volume.BLOCK_LEN + 7));
+            for (int i = 0; i < filename.length; i++) {
+                filename[i] = (char)vol.bb.get(datablock_pt + direntry_offset % Volume.BLOCK_LEN + 8 + i);
+            }
+            row[4] = new String(filename);
+            table.add_row(row);
+        }
+        table.print_table();
     }
 
     /**
