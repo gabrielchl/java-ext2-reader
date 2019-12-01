@@ -94,9 +94,26 @@ public class Volume {
 
     /**
      * Prints group description
+     *
+     * @param   group_desc_num  Group descriptor number
      */
-    public void print_group_desc() {
+    public void print_group_desc(int group_desc_num) {
+        int offset = BLOCK_LEN + BLOCK_LEN + group_desc_num * 32;
+        System.out.println("Block bitmap pointer:   " + bb.getInt(offset));
+        System.out.println("Inode bitmap pointer:   " + bb.getInt(offset + 4));
+        System.out.println("Inode table pointer:    " + bb.getInt(offset + 8));
+        System.out.println("Free block count:       " + bb.getShort(offset + 12));
+        System.out.println("Free inode count:       " + bb.getShort(offset + 14));
+        System.out.println("Used directories count: " + bb.getShort(offset + 16));
+    }
 
+    /**
+     * Prints inode
+     *
+     * @param   id  ID of the inode
+     */
+    public void print_inode(int id) {
+        Inode inode = get_inode(id);
     }
 
     /**

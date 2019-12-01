@@ -58,7 +58,9 @@ public class Main {
                         vol.print_super_block();
                         break;
                     case "print-group-desc":
-                        vol.print_group_desc();
+                        if (arguments.length >= 1) {
+                            vol.print_group_desc(Integer.parseInt(arguments[0]));
+                        }
                         break;
                     case "df":
                     case "vol-details":
