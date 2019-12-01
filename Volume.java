@@ -33,29 +33,16 @@ public class Volume {
             RandomAccessFile vol_file = new RandomAccessFile("ext2fs", "r");
             int length = (int)vol_file.length();
             bb = vol_file.getChannel().map(FileChannel.MapMode.READ_ONLY, 0, length);
-
-            bb.order(ByteOrder.LITTLE_ENDIAN);
-
-            //System.out.println("Magic Number: " + bb.getShort(1080));
-            num_blocks = bb.getInt(1028);
-            num_inodes = bb.getInt(1024);
-            blocks_per_gp = bb.getInt(1056);
-            inodes_per_gp = bb.getInt(1064);
-            inode_len = bb.getInt(1112);
-
-            /**
-            System.out.println("-----------Block Group 1 Desc-----------");
-
-            System.out.println("Block bitmap pointer: " + bb.getInt(2048));
-            System.out.println("Inode bitmap pointer: " + bb.getInt(2052));
-
-            System.out.println("Free block count: " + bb.getShort(2060));
-            System.out.println("Free inode count: " + bb.getShort(2062));
-            System.out.println("Used directories count: " + bb.getShort(2064));**/
-            //System.out.println("Inode table pointer: " + bb.getInt(2056));
         } catch (Exception e) {
             e.printStackTrace();
         }
+        bb.order(ByteOrder.LITTLE_ENDIAN);
+
+        num_blocks = bb.getInt(1028);
+        num_inodes = bb.getInt(1024);
+        blocks_per_gp = bb.getInt(1056);
+        inodes_per_gp = bb.getInt(1064);
+        inode_len = bb.getInt(1112);
     }
 
     /**

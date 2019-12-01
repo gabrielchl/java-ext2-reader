@@ -51,8 +51,24 @@ public class Main {
                     case "help":
                     case "h":
                         System.out.println("help");
-                        System.out.println("h       print this help text");
-                        System.out.println("df      print volume details");
+                        System.out.println("h                 print this help text");
+                        System.out.println("print-super-block");
+                        System.out.println("psb               print super block contents");
+                        System.out.println("print-group-desc <group_id>");
+                        System.out.println("pgd <group_id>    print group description contents");
+                        System.out.println("print-inode <inode_id>");
+                        System.out.println("pi <inode_id>     print group description contents");
+                        System.out.println("print-dir-entries");
+                        System.out.println("pde               print directory entries");
+                        System.out.println("vol-details");
+                        System.out.println("df                print volume details");
+                        System.out.println("pwd               print current path");
+                        System.out.println("ls <filename>     print current path");
+                        System.out.println("stat <filename>   print current path");
+                        System.out.println("cd <filename>     print current path");
+                        System.out.println("cat <filename>    print current path");
+                        System.out.println("head -c <num_bytes> <filename>   print current path");
+                        System.out.println("tail -c <num_bytes> <filename>   print current path");
                         break;
                     case "print-super-block":
                     case "psb":
@@ -341,9 +357,9 @@ public class Main {
      * @param   format      The desired format
      * @return  Formatted date string
      */
-    public String format_date(int date_time, String format) throws FileSystemException { // TODO check why printing is wrong
+    public String format_date(int date_time, String format) throws FileSystemException {
         SimpleDateFormat simple_date_format = new SimpleDateFormat(format);
-        return simple_date_format.format(new Date((long)date_time));
+        return simple_date_format.format(new Date((long)date_time * 1000));
     }
 
     /**
