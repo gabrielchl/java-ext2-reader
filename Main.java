@@ -55,11 +55,21 @@ public class Main {
                         System.out.println("df      print volume details");
                         break;
                     case "print-super-block":
+                    case "psb":
                         vol.print_super_block();
                         break;
                     case "print-group-desc":
+                    case "pgd":
                         if (arguments.length >= 1) {
                             vol.print_group_desc(Integer.parseInt(arguments[0]));
+                        }
+                        break;
+                    case "print-inode":
+                    case "pi":
+                        if (arguments.length >= 1) {
+                            vol.print_inode(Integer.parseInt(arguments[0]));
+                        } else {
+                            vol.print_inode(cwd.inode.id);
                         }
                         break;
                     case "df":
