@@ -54,6 +54,12 @@ public class Main {
                         System.out.println("h       print this help text");
                         System.out.println("df      print volume details");
                         break;
+                    case "print-super-block":
+                        vol.print_super_block();
+                        break;
+                    case "print-group-desc":
+                        vol.print_group_desc();
+                        break;
                     case "df":
                     case "vol-details":
                         vol.print_vol_details();
