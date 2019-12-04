@@ -63,12 +63,12 @@ public class Main {
                         System.out.println("vol-details");
                         System.out.println("df                print volume details\n");
                         System.out.println("pwd               print current path\n");
-                        System.out.println("ls <filename>     print current path\n");
-                        System.out.println("stat <filename>   print current path\n");
-                        System.out.println("cd <filename>     print current path\n");
-                        System.out.println("cat <filename>    print current path\n");
-                        System.out.println("head -c <num_bytes> <filename>   print current path\n");
-                        System.out.println("tail -c <num_bytes> <filename>   print current path");
+                        System.out.println("ls <filename>     list contents of <filename>(directory)\n");
+                        System.out.println("stat <filename>   print details of <filename>(file)\n");
+                        System.out.println("cd <filename>     change directory to <filename>(directory)\n");
+                        System.out.println("cat <filename>    print file <filename>\n");
+                        System.out.println("head -c <num_bytes> <filename>   print first <num_bytes> of <filename>\n");
+                        System.out.println("tail -c <num_bytes> <filename>   print last <num_bytes> of <filename>");
                         break;
                     case "print-super-block":
                     case "psb":
