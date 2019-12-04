@@ -79,6 +79,7 @@ public class Main {
                         System.out.println("head -c <num_bytes> <filename>   print first <num_bytes> of <filename>\n");
                         System.out.println("tail -c <num_bytes> <filename>   print last <num_bytes> of <filename>");
                         break;
+                    /**************** Code solely to comply with "API" *****************/
                     case "volume":
                         if (arguments.length >= 1) {
                             java.io.File f = new java.io.File(arguments[0]);
@@ -146,6 +147,7 @@ public class Main {
                             Helper.dumpHexBytes(String.join(" ", arguments).getBytes());
                         }
                         break;
+                    /**************** End of code solely to comply with "API" *****************/
                     case "print-super-block":
                     case "psb":
                         vol.print_super_block();
