@@ -80,6 +80,7 @@ public class Main {
                         System.out.println("tail -c <num_bytes> <filename>   print last <num_bytes> of <filename>");
                         break;
                     /**************** Code solely to comply with "API" *****************/
+                    /**************** To be removed after demonstration ****************/
                     case "volume":
                         if (arguments.length >= 1) {
                             java.io.File f = new java.io.File(arguments[0]);
