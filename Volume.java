@@ -9,8 +9,8 @@ import java.nio.channels.FileChannel;
  * The filesystem as a volume.
  */
 public class Volume {
-    public static final int BLOCK_LEN = 1024;
-    public static final int DATABLOCK_PT_LEN = 4;
+    public final int BLOCK_LEN = 1024;
+    public final int DATABLOCK_PT_LEN = 4;
 
     public String vol_filename;
     public Inode root_inode;
@@ -30,7 +30,7 @@ public class Volume {
     public Volume(String filename) {
         vol_filename = filename;
         try {
-            RandomAccessFile vol_file = new RandomAccessFile("ext2fs", "r");
+            RandomAccessFile vol_file = new RandomAccessFile(vol_filename, "r");
             int length = (int)vol_file.length();
             bb = vol_file.getChannel().map(FileChannel.MapMode.READ_ONLY, 0, length);
         } catch (Exception e) {

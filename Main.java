@@ -14,8 +14,9 @@ public class Main {
     public static final String BLUE_COL = "\u001b[38;5;110m";
     public static final String RESET = "\u001b[0m";
 
-    private Volume vol;
-    private File cwd;
+    private Volume vol = null;
+    private File cwd = null;
+    private File active = null;
 
     /**
      * Creates the main object.
@@ -28,8 +29,8 @@ public class Main {
      * The main object.
      */
     public Main() {
-        vol = new Volume("./ext2fs");
-        cwd = new File(vol, "", new LinkedList<String>(), vol.get_root_inode());
+        //vol = new Volume("./ext2fs");
+        //cwd = new File(vol, "", new LinkedList<String>(), vol.get_root_inode());
 
         Scanner scanner = new Scanner(System.in);
 
@@ -41,10 +42,18 @@ public class Main {
         });
 
         while (true) {
-            System.out.print(BOLD_FONT + BLUE_COL + cwd.get_path_string() + " $ " + RESET);
+            if (vol != null) {
+                System.out.print(BOLD_FONT + BLUE_COL + cwd.get_path_string() + " $ " + RESET);
+            } else {
+                System.out.print(BOLD_FONT + BLUE_COL + "$ " + RESET);
+            }
             String[] input = scanner.nextLine().trim().split("[ ]+");
             String command = input[0];
             String[] arguments = Arrays.copyOfRange(input, 1, input.length);
+            if (vol == null && command.indexOf("volume") < 0) {
+                System.out.println("No volume selected. Do so using the volume <filename> command");
+                continue;
+            }
 
             try {
                 switch (command) {
@@ -69,6 +78,73 @@ public class Main {
                         System.out.println("cat <filename>    print file <filename>\n");
                         System.out.println("head -c <num_bytes> <filename>   print first <num_bytes> of <filename>\n");
                         System.out.println("tail -c <num_bytes> <filename>   print last <num_bytes> of <filename>");
+                        break;
+                    case "volume":
+                        if (arguments.length >= 1) {
+                            java.io.File f = new java.io.File(arguments[0]);
+                            if (f.exists()) {
+                                vol = new Volume(arguments[0]);
+                                cwd = new File(vol, "", new LinkedList<String>(), vol.get_root_inode());
+                                active = null;
+                            } else {
+                                System.out.println("volume: " + arguments[0] + ": File not found");
+                            }
+                        }
+                        break;
+                    case "select":
+                        if (arguments.length >= 1) {
+                            active = open(arguments[0], false);
+                        }
+                        break;
+                    case "seek":
+                        if (active == null) {
+                            System.out.println("seek: No file selected. Do so using the select <filename> command");
+                            break;
+                        }
+                        if (arguments.length >= 1) {
+                            if (Long.parseLong(arguments[0]) > active.get_size()) {
+                                System.out.println("seek: Seek position bigger than file size");
+                                break;
+                            }
+                            active.position = Long.parseLong(arguments[0]);
+                        }
+                        break;
+                    case "read":
+                        if (active == null) {
+                            System.out.println("read: No file selected. Do so using the select <filename> command");
+                            break;
+                        }
+                        if (arguments.length >= 2) {
+                            if (Long.parseLong(arguments[0]) > active.get_size()) {
+                                System.out.println("read: Seek position bigger than file size");
+                                break;
+                            }
+                            active.position = Long.parseLong(arguments[0]);
+                            Helper.dumpHexBytes(active.read(Long.parseLong(arguments[1])));
+                        }
+                        else if (arguments.length == 1) {
+                            Helper.dumpHexBytes(active.read(Long.parseLong(arguments[0])));
+                        }
+                        break;
+                    case "position":
+                        if (active == null) {
+                            System.out.println("position: No file selected. Do so using the select <filename> command");
+                            break;
+                        }
+                        System.out.println(active.position);
+                        break;
+                    case "size":
+                        if (active == null) {
+                            System.out.println("size: No file selected. Do so using the select <filename> command");
+                            break;
+                        }
+                        System.out.println(active.get_size());
+                        break;
+                    case "dumpHexBytes":
+                    case "dump-hex-bytes":
+                        if (arguments.length >= 1) {
+                            Helper.dumpHexBytes(String.join(" ", arguments).getBytes());
+                        }
                         break;
                     case "print-super-block":
                     case "psb":
@@ -100,6 +176,7 @@ public class Main {
                         System.out.println(cwd.get_path_string());
                         break;
                     case "ls":
+                    case "getFileInfo":
                         cmd_ls(command, arguments);
                         break;
                     case "stat":
@@ -313,15 +390,15 @@ public class Main {
         TablePrinter table = new TablePrinter();
         table.add_row(new String[]{"Inode", "Length", "Name length", "File type", "Filename"});
         for (int direntry_offset : cwd.inode.iter_direntries()) {
-            int datablock_pt = cwd.inode.get_datablock_pt(direntry_offset / Volume.BLOCK_LEN);
+            int datablock_pt = cwd.inode.get_datablock_pt(direntry_offset / vol.BLOCK_LEN);
             String[] row = new String[5];
-            row[0] = Integer.toString(vol.bb.getInt(datablock_pt + direntry_offset % Volume.BLOCK_LEN));
-            row[1] = Integer.toString(vol.bb.getShort(datablock_pt + direntry_offset % Volume.BLOCK_LEN + 4));
-            char[] filename = new char[vol.bb.get(datablock_pt + direntry_offset % Volume.BLOCK_LEN + 6)];
+            row[0] = Integer.toString(vol.bb.getInt(datablock_pt + direntry_offset % vol.BLOCK_LEN));
+            row[1] = Integer.toString(vol.bb.getShort(datablock_pt + direntry_offset % vol.BLOCK_LEN + 4));
+            char[] filename = new char[vol.bb.get(datablock_pt + direntry_offset % vol.BLOCK_LEN + 6)];
             row[2] = Integer.toString(filename.length);
-            row[3] = Integer.toString(vol.bb.get(datablock_pt + direntry_offset % Volume.BLOCK_LEN + 7));
+            row[3] = Integer.toString(vol.bb.get(datablock_pt + direntry_offset % vol.BLOCK_LEN + 7));
             for (int i = 0; i < filename.length; i++) {
-                filename[i] = (char)vol.bb.get(datablock_pt + direntry_offset % Volume.BLOCK_LEN + 8 + i);
+                filename[i] = (char)vol.bb.get(datablock_pt + direntry_offset % vol.BLOCK_LEN + 8 + i);
             }
             row[4] = new String(filename);
             table.add_row(row);

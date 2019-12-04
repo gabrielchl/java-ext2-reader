@@ -20,7 +20,7 @@ public class Helper {
      *
      * @param   bytes   Bytes to be dumped
      */
-    public void dumpHexBytes(byte[] bytes) {
+    public static void dumpHexBytes(byte[] bytes) {
         int blank_bytes_count = (bytes.length % 16 == 0) ? 0 : 16 - bytes.length % 16;
         String row_output = "";
         String row_in_string = "";
