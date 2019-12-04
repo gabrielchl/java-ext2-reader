@@ -64,7 +64,6 @@ public class File {
         for (long i = 0; i < read_length;) {
             if (position % Volume.BLOCK_LEN == 0) {
                 datablock_pt = inode.get_datablock_pt((int)(position / Volume.BLOCK_LEN));// (int)temp_pos / Volume.BLOCK_LEN = block # of the position in the file
-                //System.out.println(datablock_pt);
                 vol.bb.position(datablock_pt);
             }
             if (datablock_pt != 0) {

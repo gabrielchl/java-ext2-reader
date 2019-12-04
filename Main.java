@@ -51,23 +51,23 @@ public class Main {
                     case "help":
                     case "h":
                         System.out.println("help");
-                        System.out.println("h                 print this help text");
+                        System.out.println("h                 print this help text\n");
                         System.out.println("print-super-block");
-                        System.out.println("psb               print super block contents");
+                        System.out.println("psb               print super block contents\n");
                         System.out.println("print-group-desc <group_id>");
-                        System.out.println("pgd <group_id>    print group description contents");
+                        System.out.println("pgd <group_id>    print group description contents\n");
                         System.out.println("print-inode <inode_id>");
-                        System.out.println("pi <inode_id>     print group description contents");
+                        System.out.println("pi <inode_id>     print group description contents\n");
                         System.out.println("print-dir-entries");
-                        System.out.println("pde               print directory entries");
+                        System.out.println("pde               print directory entries\n");
                         System.out.println("vol-details");
-                        System.out.println("df                print volume details");
-                        System.out.println("pwd               print current path");
-                        System.out.println("ls <filename>     print current path");
-                        System.out.println("stat <filename>   print current path");
-                        System.out.println("cd <filename>     print current path");
-                        System.out.println("cat <filename>    print current path");
-                        System.out.println("head -c <num_bytes> <filename>   print current path");
+                        System.out.println("df                print volume details\n");
+                        System.out.println("pwd               print current path\n");
+                        System.out.println("ls <filename>     print current path\n");
+                        System.out.println("stat <filename>   print current path\n");
+                        System.out.println("cd <filename>     print current path\n");
+                        System.out.println("cat <filename>    print current path\n");
+                        System.out.println("head -c <num_bytes> <filename>   print current path\n");
                         System.out.println("tail -c <num_bytes> <filename>   print current path");
                         break;
                     case "print-super-block":
@@ -238,12 +238,16 @@ public class Main {
                 file_type_string(stat[1])
             });
             table_printer.add_row(new String[]{
-                LIGHT_GREY_COL + "Device: N/A " + RESET, //(color not supported in table printer for now)
+                LIGHT_GREY_COL + "Device: N/A " + RESET,
                 "Inode: " + stat[0] + " ",
                 "Links: " + stat[2],
                 ""
             });
             table_printer.print_table();
+
+            if (stat[1] < 0) {
+                stat[1] &= 0xFFFF;
+            }
 
             System.out.print("Access: (" + Integer.toOctalString(stat[1]).substring(1) + "/" + file_perm_string(stat[1]) + ")  ");
             System.out.print("Uid: " + stat[3] + "  ");
