@@ -59,11 +59,11 @@ public class File {
     public byte[] read(long length) {
         long read_length = (length > get_size() - position) ? get_size() - position : length;
         byte[] content = new byte[(int)read_length];
-        int datablock_pt = inode.get_datablock_pt((int)(position / Volume.BLOCK_LEN));
-        vol.bb.position(datablock_pt + (int)(position % Volume.BLOCK_LEN));
+        int datablock_pt = inode.get_datablock_pt((int)(position / vol.BLOCK_LEN));
+        vol.bb.position(datablock_pt + (int)(position % vol.BLOCK_LEN));
         for (long i = 0; i < read_length;) {
-            if (position % Volume.BLOCK_LEN == 0) {
-                datablock_pt = inode.get_datablock_pt((int)(position / Volume.BLOCK_LEN));// (int)temp_pos / Volume.BLOCK_LEN = block # of the position in the file
+            if (position % vol.BLOCK_LEN == 0) {
+                datablock_pt = inode.get_datablock_pt((int)(position / vol.BLOCK_LEN));// (int)temp_pos / vol.BLOCK_LEN = block # of the position in the file
                 vol.bb.position(datablock_pt);
             }
             if (datablock_pt != 0) {
@@ -94,11 +94,11 @@ public class File {
         List<String> filenames = new LinkedList<String>();
 
         for (int direntry_offset : inode.iter_direntries()) {
-            int datablock_pt = inode.get_datablock_pt(direntry_offset / Volume.BLOCK_LEN);
-            char[] current_filename = new char[vol.bb.get(datablock_pt + direntry_offset % Volume.BLOCK_LEN + 6)];
+            int datablock_pt = inode.get_datablock_pt(direntry_offset / vol.BLOCK_LEN);
+            char[] current_filename = new char[vol.bb.get(datablock_pt + direntry_offset % vol.BLOCK_LEN + 6)];
 
             for (int i = 0; i < current_filename.length; i++)
-                current_filename[i] = (char)vol.bb.get(datablock_pt + direntry_offset % Volume.BLOCK_LEN + 8 + i);
+                current_filename[i] = (char)vol.bb.get(datablock_pt + direntry_offset % vol.BLOCK_LEN + 8 + i);
 
             filenames.add(new String(current_filename));
         }

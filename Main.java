@@ -50,7 +50,7 @@ public class Main {
             String[] input = scanner.nextLine().trim().split("[ ]+");
             String command = input[0];
             String[] arguments = Arrays.copyOfRange(input, 1, input.length);
-            if (vol == null && command.indexOf("volume") < 0) {
+            if (vol == null && command.indexOf("volume") < 0 && command.indexOf("vol") < 0) {
                 System.out.println("No volume selected. Do so using the volume <filename> command");
                 continue;
             }
@@ -82,6 +82,7 @@ public class Main {
                     /**************** Code solely to comply with "API" *****************/
                     /**************** To be removed after demonstration ****************/
                     case "volume":
+                    case "vol":
                         if (arguments.length >= 1) {
                             java.io.File f = new java.io.File(arguments[0]);
                             if (f.exists()) {
@@ -104,6 +105,10 @@ public class Main {
                             break;
                         }
                         if (arguments.length >= 1) {
+                            if (Long.parseLong(arguments[0]) < 0) {
+                                System.out.println("seek: Seek position smaller than 0");
+                                break;
+                            }
                             if (Long.parseLong(arguments[0]) > active.get_size()) {
                                 System.out.println("seek: Seek position bigger than file size");
                                 break;
@@ -117,6 +122,10 @@ public class Main {
                             break;
                         }
                         if (arguments.length >= 2) {
+                            if (Long.parseLong(arguments[0]) < 0) {
+                                System.out.println("read: Seek position smaller than 0");
+                                break;
+                            }
                             if (Long.parseLong(arguments[0]) > active.get_size()) {
                                 System.out.println("read: Seek position bigger than file size");
                                 break;
@@ -179,8 +188,10 @@ public class Main {
                         System.out.println(cwd.get_path_string());
                         break;
                     case "ls":
-                    case "getFileInfo":
                         cmd_ls(command, arguments);
+                        break;
+                    case "getFileInfo":
+                        cmd_ls(command, new String[]{"-l"});
                         break;
                     case "stat":
                         if (arguments.length >= 1) {

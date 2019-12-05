@@ -71,14 +71,14 @@ public class Inode {
      */
     public Inode lookup(String filename) throws FileSystemException { // TODO not just look in 1 datablock
         for (int direntry_offset : iter_direntries()) {
-            int datablock_pt = get_datablock_pt(direntry_offset / Volume.BLOCK_LEN);
-            char[] current_filename = new char[vol.bb.get(datablock_pt + direntry_offset % Volume.BLOCK_LEN + 6)];
+            int datablock_pt = get_datablock_pt(direntry_offset / vol.BLOCK_LEN);
+            char[] current_filename = new char[vol.bb.get(datablock_pt + direntry_offset % vol.BLOCK_LEN + 6)];
 
             for (int i = 0; i < current_filename.length; i++)
-                current_filename[i] = (char)vol.bb.get(datablock_pt + direntry_offset % Volume.BLOCK_LEN + 8 + i);
+                current_filename[i] = (char)vol.bb.get(datablock_pt + direntry_offset % vol.BLOCK_LEN + 8 + i);
 
             if (filename.equals(new String(current_filename)))
-                return vol.get_inode(vol.bb.getInt(datablock_pt + direntry_offset % Volume.BLOCK_LEN));
+                return vol.get_inode(vol.bb.getInt(datablock_pt + direntry_offset % vol.BLOCK_LEN));
         }
 
         throw new FileSystemException(2);
@@ -128,7 +128,7 @@ public class Inode {
      */
     public int get_datablock_pt(int datablock_id) {
         if (datablock_id < 12) {
-            return vol.bb.getInt(offset + 40 + datablock_id * 4) * Volume.BLOCK_LEN;
+            return vol.bb.getInt(offset + 40 + datablock_id * 4) * vol.BLOCK_LEN;
         }
 
         datablock_id -= 12;
@@ -149,13 +149,13 @@ public class Inode {
 
         assert datablock_id == 0;
 
-        datablock_id = vol.bb.getInt(offset + 40 + (11 + level) * 4) * Volume.BLOCK_LEN;
+        datablock_id = vol.bb.getInt(offset + 40 + (11 + level) * 4) * vol.BLOCK_LEN;
 
         for (int i = 0; i < level; i++) {
             if (datablock_id == 0)
                 return datablock_id;
 
-            datablock_id = vol.bb.getInt(datablock_id + inds[i] * 4) * Volume.BLOCK_LEN;
+            datablock_id = vol.bb.getInt(datablock_id + inds[i] * 4) * vol.BLOCK_LEN;
         }
 
         return datablock_id;
@@ -255,8 +255,8 @@ public class Inode {
          */
         private void valid_direntry() {
             while (hasNext()) {
-                int datablock_pt = get_datablock_pt(direntry_offset / Volume.BLOCK_LEN);
-                int inode = vol.bb.getInt(datablock_pt + direntry_offset % Volume.BLOCK_LEN);
+                int datablock_pt = get_datablock_pt(direntry_offset / vol.BLOCK_LEN);
+                int inode = vol.bb.getInt(datablock_pt + direntry_offset % vol.BLOCK_LEN);
                 if (inode != 0)
                     break;
                 next_direntry();
@@ -267,8 +267,8 @@ public class Inode {
          * Gets the next directory entry.
          */
         private void next_direntry() {
-            int datablock_pt = get_datablock_pt(direntry_offset / Volume.BLOCK_LEN);
-            direntry_offset += vol.bb.getShort(datablock_pt + direntry_offset % Volume.BLOCK_LEN + 4);
+            int datablock_pt = get_datablock_pt(direntry_offset / vol.BLOCK_LEN);
+            direntry_offset += vol.bb.getShort(datablock_pt + direntry_offset % vol.BLOCK_LEN + 4);
         }
     }
 }
