@@ -104,16 +104,20 @@ public class Main {
                             System.out.println("seek: No file selected. Do so using the select <filename> command");
                             break;
                         }
-                        if (arguments.length >= 1) {
-                            if (Long.parseLong(arguments[0]) < 0) {
-                                System.out.println("seek: Seek position smaller than 0");
-                                break;
+                        try {
+                            if (arguments.length >= 1) {
+                                if (Long.parseLong(arguments[0]) < 0) {
+                                    System.out.println("seek: Seek position smaller than 0");
+                                    break;
+                                }
+                                if (Long.parseLong(arguments[0]) > active.get_size()) {
+                                    System.out.println("seek: Seek position bigger than file size");
+                                    break;
+                                }
+                                active.position = Long.parseLong(arguments[0]);
                             }
-                            if (Long.parseLong(arguments[0]) > active.get_size()) {
-                                System.out.println("seek: Seek position bigger than file size");
-                                break;
-                            }
-                            active.position = Long.parseLong(arguments[0]);
+                        } catch (NumberFormatException nfe) {
+                            System.out.println("seek: argument is not numeric");
                         }
                         break;
                     case "read":
@@ -121,20 +125,24 @@ public class Main {
                             System.out.println("read: No file selected. Do so using the select <filename> command");
                             break;
                         }
-                        if (arguments.length >= 2) {
-                            if (Long.parseLong(arguments[0]) < 0) {
-                                System.out.println("read: Seek position smaller than 0");
-                                break;
+                        try {
+                            if (arguments.length >= 2) {
+                                if (Long.parseLong(arguments[0]) < 0) {
+                                    System.out.println("read: Seek position smaller than 0");
+                                    break;
+                                }
+                                if (Long.parseLong(arguments[0]) > active.get_size()) {
+                                    System.out.println("read: Seek position bigger than file size");
+                                    break;
+                                }
+                                active.position = Long.parseLong(arguments[0]);
+                                Helper.dumpHexBytes(active.read(Long.parseLong(arguments[1])));
                             }
-                            if (Long.parseLong(arguments[0]) > active.get_size()) {
-                                System.out.println("read: Seek position bigger than file size");
-                                break;
+                            else if (arguments.length == 1) {
+                                Helper.dumpHexBytes(active.read(Long.parseLong(arguments[0])));
                             }
-                            active.position = Long.parseLong(arguments[0]);
-                            Helper.dumpHexBytes(active.read(Long.parseLong(arguments[1])));
-                        }
-                        else if (arguments.length == 1) {
-                            Helper.dumpHexBytes(active.read(Long.parseLong(arguments[0])));
+                        } catch (NumberFormatException nfe) {
+                            System.out.println("read: argument is not numeric");
                         }
                         break;
                     case "position":
@@ -153,8 +161,20 @@ public class Main {
                         break;
                     case "dumpHexBytes":
                     case "dump-hex-bytes":
-                        if (arguments.length >= 1) {
-                            Helper.dumpHexBytes(String.join(" ", arguments).getBytes());
+                        if (arguments.length >= 2) {
+                            try {
+                                long offset = Long.parseLong(arguments[0]);
+                                for (int i = 0; i < (int)Math.ceil(Long.parseLong(arguments[1]) / (double)1024); i++) {
+                                    int read_len = (i == (int)Math.ceil(Long.parseLong(arguments[1]) / (double)1024)) ? (int)(Long.parseLong(arguments[1]) % 1024) : 1024;
+                                    byte[] bytes = new byte[read_len];
+                                    for (int j = 0; j < read_len; j++) {
+                                        bytes[j] = vol.bb.get((int)(offset + i * 1024 + j));
+                                    }
+                                    Helper.dumpHexBytes(bytes);
+                                }
+                            } catch (NumberFormatException nfe) {
+                                System.out.println("dump-hex-bytes: argument is not numeric");
+                            }
                         }
                         break;
                     /**************** End of code solely to comply with "API" *****************/
